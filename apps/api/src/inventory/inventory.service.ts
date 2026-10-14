@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { InsufficientStockError, ConfigurationError, money, qQty, qMoney } from '@erpcloud/shared';
+import { InsufficientStockError, ConfigurationError, DomainError, money, qQty, qMoney } from '@erpcloud/shared';
+import { AccountingService } from '../accounting/accounting.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface MovementInput { productId: string; warehouseId: string; lotId?: string; type: string; qty: string; unitCost?: string; sourceType: string; sourceId: string; idempotencyKey: string; businessDate: string; createdBy?: string; }
@@ -62,6 +63,41 @@ export class InventoryService {
         FROM stock_balances b LEFT JOIN stock_movements m ON m.product_id=b.product_id AND m.warehouse_id=b.warehouse_id AND m.tenant_id=b.tenant_id AND m.lot_id IS NOT DISTINCT FROM b.lot_id
         WHERE b.tenant_id = ${tenantId}::uuid GROUP BY b.id`;
       return rows.filter((r: any) => money(r.book_qty).minus(money(r.ledger_qty)).abs().gt('0.000001') || money(r.book_value).minus(money(r.ledger_value)).abs().gt('0.01'));
+    });
+  }
+}
+
+export class StockCountsService {
+  constructor(private prisma: PrismaService, private acc: AccountingService, private inv: InventoryService) {}
+  /** Approved count variance posts movement + journal only after approval — unapproved counts change nothing. */
+  async postCount(tenantId: string, input: { warehouseId: string; businessDate: string; lines: { productId: string; lotId?: string; countedQty: string; reason?: string }[]; createdBy?: string }) {
+    return this.prisma.withTenant(tenantId, async (tx: any) => {
+      const count = await tx.stockCount.create({ data: { tenantId, warehouseId: input.warehouseId, businessDate: new Date(input.businessDate), createdBy: input.createdBy ?? null } });
+      for (const l of input.lines) {
+        const bal = await tx.stockBalance.findFirst({ where: { tenantId, productId: l.productId, warehouseId: input.warehouseId, lotId: l.lotId ?? null } });
+        const book = bal ? money(bal.qty.toString()) : money(0);
+        await tx.stockCountLine.create({ data: { tenantId, countId: count.id, productId: l.productId, lotId: l.lotId ?? null, bookQty: book as never, countedQty: money(l.countedQty) as never, reason: l.reason ?? null } });
+        const diff = money(l.countedQty).minus(book);
+        if (!diff.isZero()) {
+          if (!l.reason) throw new DomainError('REASON_REQUIRED', 'سبب فرق الجرد مطلوب');
+          const invAcc = await this.acc.resolveAccount(tx, tenantId, 'INVENTORY');
+          const adjAcc = await this.acc.resolveAccount(tx, tenantId, diff.lt(0) ? 'SHORTAGE_LOSS' : 'SHORTAGE_GAIN');
+          const m = await this.inv.postMovementTx(tx, tenantId, { productId: l.productId, warehouseId: input.warehouseId, lotId: l.lotId, type: 'count_adjustment', qty: diff.toString(), unitCost: diff.gt(0) ? (bal?.avgCost?.toString() ?? '0') : undefined, sourceType: 'stock_count', sourceId: count.id, idempotencyKey: `count:${count.id}:${l.productId}`, businessDate: input.businessDate, createdBy: input.createdBy });
+          const amount = money(m.unitCost.toString()).times(diff.abs());
+          if (amount.gt(0)) await this.acc.postJournalTx(tx, tenantId, { businessDate: input.businessDate, description: 'تسوية جرد معتمدة', lines: diff.lt(0) ? [{ accountId: adjAcc, debit: amount.toString(), credit: '0' }, { accountId: invAcc, debit: '0', credit: amount.toString() }] : [{ accountId: invAcc, debit: amount.toString(), credit: '0' }, { accountId: adjAcc, debit: '0', credit: amount.toString() }], sourceType: 'stock_count', sourceId: count.id, idempotencyKey: `count:${count.id}:${l.productId}:journal`, createdBy: input.createdBy });
+        }
+      }
+      await tx.stockCount.update({ where: { id: count.id }, data: { status: 'posted' } });
+      return tx.stockCount.findUnique({ where: { id: count.id }, include: { lines: true } });
+    });
+  }
+  /** FEFO pick suggestion: earliest-expiring lots with positive stock first. */
+  async fefo(tenantId: string, productId: string, warehouseId: string) {
+    return this.prisma.withTenant(tenantId, async (tx: any) => {
+      const bals = await tx.stockBalance.findMany({ where: { tenantId, productId, warehouseId, qty: { gt: 0 } }, include: undefined });
+      const withLots: any[] = [];
+      for (const b of bals) { const lot = b.lotId ? await tx.lot.findUnique({ where: { id: b.lotId } }) : null; withLots.push({ lotId: b.lotId, qty: b.qty.toString(), expiryDate: lot?.expiryDate ?? null }); }
+      return withLots.sort((a, b) => (a.expiryDate ? new Date(a.expiryDate).getTime() : Infinity) - (b.expiryDate ? new Date(b.expiryDate).getTime() : Infinity));
     });
   }
 }

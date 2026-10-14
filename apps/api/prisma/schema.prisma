@@ -701,3 +701,117 @@ model Notification {
   @@index([tenantId, userId, readAt])
   @@map("notifications")
 }
+
+model Bom {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  productId String @map("product_id") @db.Uuid
+  name String
+  version Int @default(1)
+  isActive Boolean @default(true) @map("is_active")
+  lines BomLine[]
+  @@unique([tenantId, productId, version])
+  @@map("boms")
+}
+model BomLine {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  bomId String @map("bom_id") @db.Uuid
+  ingredientProductId String @map("ingredient_product_id") @db.Uuid
+  qtyPerUnit Decimal @map("qty_per_unit") @db.Decimal(19, 6)
+  wastePercent Decimal @default(0) @map("waste_percent") @db.Decimal(9, 6)
+  bom Bom @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  @@map("bom_lines")
+}
+model ProductionOrder {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  number Int?
+  bomId String @map("bom_id") @db.Uuid
+  productId String @map("product_id") @db.Uuid
+  warehouseId String @map("warehouse_id") @db.Uuid
+  plannedQty Decimal @map("planned_qty") @db.Decimal(19, 6)
+  goodQty Decimal? @map("good_qty") @db.Decimal(19, 6)
+  abnormalScrapQty Decimal @default(0) @map("abnormal_scrap_qty") @db.Decimal(19, 6)
+  status String @default("planned") // planned|completed|cancelled
+  businessDate DateTime @map("business_date") @db.Date
+  finishedLotId String? @map("finished_lot_id") @db.Uuid
+  totalCost Decimal? @map("total_cost") @db.Decimal(19, 4)
+  unitCost Decimal? @map("unit_cost") @db.Decimal(19, 4)
+  journalEntryId String? @map("journal_entry_id") @db.Uuid
+  idempotencyKey String? @map("idempotency_key")
+  createdBy String? @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  consumption ProductionConsumption[]
+  components ProductionCostComponent[]
+  @@unique([tenantId, idempotencyKey])
+  @@map("production_orders")
+}
+model ProductionConsumption {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  orderId String @map("order_id") @db.Uuid
+  productId String @map("product_id") @db.Uuid
+  lotId String? @map("lot_id") @db.Uuid
+  plannedQty Decimal @map("planned_qty") @db.Decimal(19, 6)
+  actualQty Decimal @map("actual_qty") @db.Decimal(19, 6)
+  unitCost Decimal @map("unit_cost") @db.Decimal(19, 4)
+  order ProductionOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  @@map("production_consumption")
+}
+model ProductionCostComponent {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  orderId String @map("order_id") @db.Uuid
+  kind String // labour|overhead|other
+  amount Decimal @db.Decimal(19, 4)
+  order ProductionOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  @@map("production_cost_components")
+}
+model ScrapRecord {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  orderId String? @map("order_id") @db.Uuid
+  productId String @map("product_id") @db.Uuid
+  qty Decimal @db.Decimal(19, 6)
+  kind String // normal|abnormal
+  amount Decimal @db.Decimal(19, 4)
+  reason String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@map("scrap_records")
+}
+model LotGenealogy {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  finishedLotId String @map("finished_lot_id") @db.Uuid
+  rawLotId String @map("raw_lot_id") @db.Uuid
+  rawProductId String @map("raw_product_id") @db.Uuid
+  qty Decimal @db.Decimal(19, 6)
+  orderId String @map("order_id") @db.Uuid
+  @@index([tenantId, finishedLotId])
+  @@index([tenantId, rawLotId])
+  @@map("lot_genealogy")
+}
+model StockCount {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  warehouseId String @map("warehouse_id") @db.Uuid
+  status String @default("draft") // draft|approved|posted
+  businessDate DateTime @map("business_date") @db.Date
+  createdBy String? @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lines StockCountLine[]
+  @@map("stock_counts")
+}
+model StockCountLine {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  countId String @map("count_id") @db.Uuid
+  productId String @map("product_id") @db.Uuid
+  lotId String? @map("lot_id") @db.Uuid
+  bookQty Decimal @map("book_qty") @db.Decimal(19, 6)
+  countedQty Decimal @map("counted_qty") @db.Decimal(19, 6)
+  reason String?
+  count StockCount @relation(fields: [countId], references: [id], onDelete: Cascade)
+  @@map("stock_count_lines")
+}
