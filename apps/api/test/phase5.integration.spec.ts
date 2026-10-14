@@ -34,7 +34,7 @@ describe.skipIf(!run)('Phase5 manufacturing (real Postgres)', () => {
       await tx.accountingPeriod.create({ data: { tenantId: T, fiscalYearId: fy.id, name: '2026-10', startDate: new Date('2026-10-01'), endDate: new Date('2026-10-31') } });
       const unit = await tx.unitOfMeasure.create({ data: { tenantId: T, code: 'kg', name: 'كجم' } });
       const pcs = await tx.unitOfMeasure.create({ data: { tenantId: T, code: 'pcs', name: 'حبة' } });
-      FLOUR = (await tx.product.create({ data: { tenantId: T, sku: 'FLOUR', nameAr: 'دقيق', stockUnitId: unit.id, lotTracked: true } })).id;
+      FLOUR = (await tx.product.create({ data: { tenantId: T, sku: 'FLOUR', nameAr: 'دقيق', stockUnitId: unit.id } })).id;
       SUGAR = (await tx.product.create({ data: { tenantId: T, sku: 'SUGAR', nameAr: 'سكر', stockUnitId: unit.id } })).id;
       BREAD = (await tx.product.create({ data: { tenantId: T, sku: 'BREAD', nameAr: 'خبز', stockUnitId: pcs.id, lotTracked: true, defaultPrice: '5' } })).id;
       WH = (await tx.warehouse.create({ data: { tenantId: T, code: 'WH', name: 'رئيسي' } })).id;
