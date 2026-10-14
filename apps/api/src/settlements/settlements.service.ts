@@ -48,18 +48,23 @@ export class SettlementsService {
         const diff = countedQty.minus(money(l.expectedQty.toString()));
         if (!diff.isZero()) {
           const approved = await tx.settlementException.findFirst({ where: { settlementId: s.id, productId: l.productId, status: { in: ['approved_adjustment', 'approved_employee_receivable'] } } });
-          if (approved && money(approved.qty?.toString() ?? '0').equals(diff.abs())) { /* decided exception covers this diff */ }
-          else blocked = true;
-          const exists = await tx.settlementException.findFirst({ where: { settlementId: s.id, productId: l.productId, status: 'under_investigation' } });
-          if (!exists) await tx.settlementException.create({ data: { tenantId, settlementId: s.id, kind: diff.lt(0) ? 'stock_shortage' : 'stock_surplus', productId: l.productId, qty: diff.abs() as never } });
+          const covered = approved && money(approved.qty?.toString() ?? '0').equals(diff.abs());
+          if (!covered) {
+            blocked = true;
+            const exists = await tx.settlementException.findFirst({ where: { settlementId: s.id, productId: l.productId, status: 'under_investigation' } });
+            if (!exists) await tx.settlementException.create({ data: { tenantId, settlementId: s.id, kind: diff.lt(0) ? 'stock_shortage' : 'stock_surplus', productId: l.productId, qty: diff.abs() as never } });
+          }
         }
       }
       const cashDiff = money(input.countedCash).minus(money(s.expected_cash));
       if (!cashDiff.isZero()) {
         const approvedCash = await tx.settlementException.findFirst({ where: { settlementId: s.id, kind: { in: ['cash_shortage', 'cash_surplus'] }, status: { in: ['approved_adjustment', 'approved_employee_receivable'] } } });
-        if (!(approvedCash && money(approvedCash.amount?.toString() ?? '0').equals(cashDiff.abs()))) blocked = true;
-        const exists = await tx.settlementException.findFirst({ where: { settlementId: s.id, kind: { in: ['cash_shortage', 'cash_surplus'] }, status: 'under_investigation' } });
-        if (!exists) await tx.settlementException.create({ data: { tenantId, settlementId: s.id, kind: cashDiff.lt(0) ? 'cash_shortage' : 'cash_surplus', amount: qMoney(cashDiff.abs()) as never } });
+        const covered = approvedCash && money(approvedCash.amount?.toString() ?? '0').equals(cashDiff.abs());
+        if (!covered) {
+          blocked = true;
+          const exists = await tx.settlementException.findFirst({ where: { settlementId: s.id, kind: { in: ['cash_shortage', 'cash_surplus'] }, status: 'under_investigation' } });
+          if (!exists) await tx.settlementException.create({ data: { tenantId, settlementId: s.id, kind: cashDiff.lt(0) ? 'cash_shortage' : 'cash_surplus', amount: qMoney(cashDiff.abs()) as never } });
+        }
       }
       const openExceptions = await tx.settlementException.count({ where: { settlementId: s.id, status: 'under_investigation' } });
       if (blocked || openExceptions > 0) {
