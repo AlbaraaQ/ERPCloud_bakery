@@ -11,7 +11,7 @@ model Tenant {
   name String
   slug String @unique
   status String @default("active") // active|suspended|readonly|deactivated
-  baseCurrency String @default("SAR")
+  baseCurrency String @default("SAR") @map("base_currency")
   timezone String @default("Asia/Riyadh")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
