@@ -12,7 +12,11 @@ export class InventoryService {
   async postMovement(tenantId: string, input: MovementInput, opts: { allowNegative?: boolean } = {}) {
     const qty = money(input.qty);
     if (qty.isZero()) throw new Error('كمية الحركة لا يمكن أن تكون صفراً');
-    return this.prisma.withTenant(tenantId, async (tx: any) => {
+    return this.prisma.withTenant(tenantId, (tx: any) => this.postMovementTx(tx, tenantId, input, opts));
+  }
+  async postMovementTx(tx: any, tenantId: string, input: MovementInput, opts: { allowNegative?: boolean } = {}) {
+    const qty = money(input.qty);
+    {
       const dup = await tx.stockMovement.findUnique({ where: { tenantId_idempotencyKey: { tenantId, idempotencyKey: input.idempotencyKey } } });
       if (dup) return dup; // sync/posting retry: never duplicate a movement
       const product = await tx.product.findUnique({ where: { id: input.productId } });
@@ -43,7 +47,7 @@ export class InventoryService {
       const movement = await tx.stockMovement.create({ data: { tenantId, productId: input.productId, warehouseId: input.warehouseId, lotId: input.lotId ?? null, type: input.type, qty: qQty(qty) as never, unitCost, value, sourceType: input.sourceType, sourceId: input.sourceId, idempotencyKey: input.idempotencyKey, businessDate: new Date(input.businessDate), createdBy: input.createdBy ?? null } });
       await tx.stockBalance.update({ where: { id: bal.id }, data: { qty: qQty(newQty) as never, value: qMoney(newVal) as never, avgCost: qMoney(newAvg as never) as never } });
       return movement;
-    });
+    }
   }
 
   async getBalance(tenantId: string, productId: string, warehouseId: string) {

@@ -38,8 +38,12 @@ export class AccountingService {
 
   /** Posts a balanced journal atomically. Idempotent on (tenant, idempotencyKey) and (sourceType, sourceId) via caller key. */
   async postJournal(tenantId: string, input: { businessDate: string; description?: string; lines: JournalLineInput[]; sourceType?: string; sourceId?: string; idempotencyKey: string; createdBy?: string }) {
+    return this.prisma.withTenant(tenantId, (tx: any) => this.postJournalTx(tx, tenantId, input));
+  }
+  /** Tx variant: lets sales/purchasing compose journal+stock+document in ONE transaction. */
+  async postJournalTx(tx: any, tenantId: string, input: { businessDate: string; description?: string; lines: JournalLineInput[]; sourceType?: string; sourceId?: string; idempotencyKey: string; createdBy?: string }) {
     validateLines(input.lines);
-    return this.prisma.withTenant(tenantId, async (tx: any) => {
+    {
       const existing = await tx.journalEntry.findUnique({ where: { tenantId_idempotencyKey: { tenantId, idempotencyKey: input.idempotencyKey } }, include: { lines: true } });
       if (existing) return existing; // safe retry: original result, never re-post
       const date = new Date(input.businessDate);
@@ -54,7 +58,7 @@ export class AccountingService {
         await tx.journalLine.create({ data: { tenantId, entryId: entry.id, accountId: l.accountId, debit: money(l.debit) as never, credit: money(l.credit) as never, branchId: l.branchId ?? null, warehouseId: l.warehouseId ?? null, representativeId: l.representativeId ?? null, costCenter: l.costCenter ?? null, partyId: l.partyId ?? null } });
       await tx.auditLog.create({ data: { tenantId, actorUserId: input.createdBy ?? null, action: 'journal.posted', entityType: 'journal_entry', entityId: entry.id } });
       return tx.journalEntry.findUnique({ where: { id: entry.id }, include: { lines: true } });
-    });
+    }
   }
 
   async reverseJournal(tenantId: string, entryId: string, input: { businessDate: string; reason: string; createdBy?: string }) {

@@ -10,10 +10,18 @@ import { AccountingController } from './accounting/accounting.controller';
 import { InventoryService } from './inventory/inventory.service';
 import { InventoryController } from './inventory/inventory.controller';
 import { AuthMiddleware } from './auth/auth.middleware';
+import { PartiesService } from './parties/parties.service';
+import { PartiesController } from './parties/parties.controller';
+import { SalesService } from './sales/sales.service';
+import { SalesController } from './sales/sales.controller';
+import { PurchasingService } from './purchasing/purchasing.service';
+import { PurchasingController } from './purchasing/purchasing.controller';
+import { CashService } from './cash/cash.service';
+import { CashController } from './cash/cash.controller';
 import { PermissionsGuard } from './rbac/permissions.guard';
 import { APP_GUARD } from '@nestjs/core';
 import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
-@Module({ controllers: [AuthController, HealthController, AccountingController, InventoryController], providers: [PrismaService, AuditService, AuthService, JobsService, AccountingService, InventoryService, { provide: APP_GUARD, useClass: PermissionsGuard }] })
+@Module({ controllers: [AuthController, HealthController, AccountingController, InventoryController, PartiesController, SalesController, PurchasingController, CashController], providers: [PrismaService, AuditService, AuthService, JobsService, AccountingService, InventoryService, PartiesService, SalesService, PurchasingService, CashService, { provide: APP_GUARD, useClass: PermissionsGuard }] })
 export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) { consumer.apply(AuthMiddleware).forRoutes(AccountingController, InventoryController); }
+  configure(consumer: MiddlewareConsumer) { consumer.apply(AuthMiddleware).forRoutes(AccountingController, InventoryController, PartiesController, SalesController, PurchasingController, CashController); }
 }

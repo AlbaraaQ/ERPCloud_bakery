@@ -12,6 +12,8 @@ model Tenant {
   slug String @unique
   status String @default("active") // active|suspended|readonly|deactivated
   baseCurrency String @default("SAR") @map("base_currency")
+  vatRegistered Boolean @default(false) @map("vat_registered")
+  vatNumber String? @map("vat_number")
   timezone String @default("Asia/Riyadh")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -295,6 +297,10 @@ model Product {
   expiryTracked Boolean @default(false) @map("expiry_tracked")
   isActive Boolean @default(true) @map("is_active")
   taxCategory String? @map("tax_category")
+  taxRate Decimal? @map("tax_rate") @db.Decimal(9, 6)
+  defaultPrice Decimal @default(0) @map("default_price") @db.Decimal(19, 4)
+  minPrice Decimal? @map("min_price") @db.Decimal(19, 4)
+  maxPrice Decimal? @map("max_price") @db.Decimal(19, 4)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   units ProductUnit[]
   movements StockMovement[]
@@ -372,4 +378,209 @@ model StockBalance {
   warehouse Warehouse @relation(fields: [warehouseId], references: [id])
   @@unique([tenantId, productId, warehouseId, lotId])
   @@map("stock_balances")
+}
+
+model Party {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  kind String // customer|supplier|both
+  name String
+  phone String?
+  email String?
+  taxNumber String? @map("tax_number")
+  taxClassification String? @map("tax_classification")
+  creditLimit Decimal @default(0) @map("credit_limit") @db.Decimal(19, 4)
+  paymentTermsDays Int @default(0) @map("payment_terms_days")
+  creditHold Boolean @default(false) @map("credit_hold")
+  priceListId String? @map("price_list_id") @db.Uuid
+  isActive Boolean @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@index([tenantId, kind])
+  @@map("parties")
+}
+model PriceList {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  name String
+  isActive Boolean @default(true) @map("is_active")
+  items PriceListItem[]
+  @@map("price_lists")
+}
+model PriceListItem {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  priceListId String @map("price_list_id") @db.Uuid
+  productId String @map("product_id") @db.Uuid
+  price Decimal @db.Decimal(19, 4)
+  effectiveFrom DateTime @map("effective_from") @db.Date
+  effectiveTo DateTime? @map("effective_to") @db.Date
+  priceList PriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  @@unique([tenantId, priceListId, productId, effectiveFrom])
+  @@map("price_list_items")
+}
+model SalesInvoice {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  number Int?
+  partyId String? @map("party_id") @db.Uuid
+  warehouseId String @map("warehouse_id") @db.Uuid
+  representativeId String? @map("representative_id") @db.Uuid
+  businessDate DateTime @map("business_date") @db.Date
+  commercialStatus String @default("draft") @map("commercial_status")
+  inventoryStatus String @default("none") @map("inventory_status")
+  accountingStatus String @default("unposted") @map("accounting_status")
+  paymentStatus String @default("unpaid") @map("payment_status")
+  taxStatus String @default("not_required") @map("tax_status")
+  syncStatus String @default("synced") @map("sync_status")
+  subtotal Decimal @default(0) @db.Decimal(19, 4)
+  discountTotal Decimal @default(0) @map("discount_total") @db.Decimal(19, 4)
+  taxTotal Decimal @default(0) @map("tax_total") @db.Decimal(19, 4)
+  total Decimal @default(0) @db.Decimal(19, 4)
+  paidAmount Decimal @default(0) @map("paid_amount") @db.Decimal(19, 4)
+  journalEntryId String? @map("journal_entry_id") @db.Uuid
+  idempotencyKey String? @map("idempotency_key")
+  createdBy String? @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lines SalesLine[]
+  @@unique([tenantId, idempotencyKey])
+  @@unique([tenantId, number])
+  @@map("sales_invoices")
+}
+model SalesLine {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  invoiceId String @map("invoice_id") @db.Uuid
+  productId String @map("product_id") @db.Uuid
+  lotId String? @map("lot_id") @db.Uuid
+  qty Decimal @db.Decimal(19, 6)
+  freeQty Decimal @default(0) @map("free_qty") @db.Decimal(19, 6)
+  originalPrice Decimal @map("original_price") @db.Decimal(19, 4)
+  unitPrice Decimal @map("unit_price") @db.Decimal(19, 4)
+  discount Decimal @default(0) @db.Decimal(19, 4)
+  taxRate Decimal @default(0) @map("tax_rate") @db.Decimal(9, 6)
+  taxAmount Decimal @default(0) @map("tax_amount") @db.Decimal(19, 4)
+  lineTotal Decimal @map("line_total") @db.Decimal(19, 4)
+  unitCost Decimal @default(0) @map("unit_cost") @db.Decimal(19, 4)
+  overrideReason String? @map("override_reason")
+  overrideApprovedBy String? @map("override_approved_by") @db.Uuid
+  invoice SalesInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  @@map("sales_lines")
+}
+model CreditNote {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  number Int?
+  originalInvoiceId String @map("original_invoice_id") @db.Uuid
+  partyId String? @map("party_id") @db.Uuid
+  businessDate DateTime @map("business_date") @db.Date
+  total Decimal @db.Decimal(19, 4)
+  taxTotal Decimal @default(0) @map("tax_total") @db.Decimal(19, 4)
+  journalEntryId String? @map("journal_entry_id") @db.Uuid
+  accountingStatus String @default("posted") @map("accounting_status")
+  idempotencyKey String? @map("idempotency_key")
+  createdBy String? @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lines CreditNoteLine[]
+  @@unique([tenantId, idempotencyKey])
+  @@map("credit_notes")
+}
+model CreditNoteLine {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  noteId String @map("note_id") @db.Uuid
+  productId String @map("product_id") @db.Uuid
+  warehouseId String @map("warehouse_id") @db.Uuid
+  qty Decimal @db.Decimal(19, 6)
+  unitPrice Decimal @map("unit_price") @db.Decimal(19, 4)
+  taxRate Decimal @default(0) @map("tax_rate") @db.Decimal(9, 6)
+  lineTotal Decimal @map("line_total") @db.Decimal(19, 4)
+  note CreditNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  @@map("credit_note_lines")
+}
+model Payment {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  partyId String? @map("party_id") @db.Uuid
+  direction String // in (from customer) | out (to supplier)
+  method String // cash|bank|electronic
+  amount Decimal @db.Decimal(19, 4)
+  businessDate DateTime @map("business_date") @db.Date
+  settlementStatus String @default("settled") @map("settlement_status") // pending|settled|failed (electronic tracked separately)
+  journalEntryId String? @map("journal_entry_id") @db.Uuid
+  idempotencyKey String? @map("idempotency_key")
+  createdBy String? @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  allocations PaymentAllocation[]
+  @@unique([tenantId, idempotencyKey])
+  @@map("payments")
+}
+model PaymentAllocation {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  paymentId String @map("payment_id") @db.Uuid
+  documentType String @map("document_type") // sales_invoice|supplier_invoice|credit_note
+  documentId String @map("document_id") @db.Uuid
+  amount Decimal @db.Decimal(19, 4)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  @@map("payment_allocations")
+}
+model SupplierInvoice {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  number Int?
+  partyId String @map("party_id") @db.Uuid
+  warehouseId String @map("warehouse_id") @db.Uuid
+  businessDate DateTime @map("business_date") @db.Date
+  accountingStatus String @default("posted") @map("accounting_status")
+  paymentStatus String @default("unpaid") @map("payment_status")
+  subtotal Decimal @default(0) @db.Decimal(19, 4)
+  taxTotal Decimal @default(0) @map("tax_total") @db.Decimal(19, 4)
+  total Decimal @default(0) @db.Decimal(19, 4)
+  paidAmount Decimal @default(0) @map("paid_amount") @db.Decimal(19, 4)
+  journalEntryId String? @map("journal_entry_id") @db.Uuid
+  idempotencyKey String? @map("idempotency_key")
+  createdBy String? @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lines SupplierLine[]
+  @@unique([tenantId, idempotencyKey])
+  @@map("supplier_invoices")
+}
+model SupplierLine {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  invoiceId String @map("invoice_id") @db.Uuid
+  productId String @map("product_id") @db.Uuid
+  lotId String? @map("lot_id") @db.Uuid
+  qty Decimal @db.Decimal(19, 6)
+  unitCost Decimal @map("unit_cost") @db.Decimal(19, 4)
+  taxRate Decimal @default(0) @map("tax_rate") @db.Decimal(9, 6)
+  taxAmount Decimal @default(0) @map("tax_amount") @db.Decimal(19, 4)
+  lineTotal Decimal @map("line_total") @db.Decimal(19, 4)
+  invoice SupplierInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  @@map("supplier_lines")
+}
+model CashAccount {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  name String
+  kind String // cash|bank
+  accountId String @map("account_id") @db.Uuid
+  isActive Boolean @default(true) @map("is_active")
+  @@map("cash_accounts")
+}
+model Expense {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  category String
+  description String?
+  amount Decimal @db.Decimal(19, 4)
+  taxRate Decimal @default(0) @map("tax_rate") @db.Decimal(9, 6)
+  cashAccountId String @map("cash_account_id") @db.Uuid
+  businessDate DateTime @map("business_date") @db.Date
+  status String @default("approved") // draft|approved|rejected|posted
+  journalEntryId String? @map("journal_entry_id") @db.Uuid
+  attachmentUrl String? @map("attachment_url")
+  createdBy String? @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@map("expenses")
 }

@@ -26,6 +26,14 @@ function App() {
         <button onClick={()=>setTheme(theme==='light'?'dark':'light')}>{theme==='light'?'🌙':'☀️'} {s.toggleTheme}</button>
       </header>
       <section className="card"><h1>{s.welcome}</h1><p>{s.desc}</p><p className="ok">✅ {s.foundation}</p>
+      <div className="card pos">
+        <h2>{lang==='ar'?'نقطة البيع — فاتورة جديدة':'POS — New invoice'}</h2>
+        <p className="muted">{lang==='ar'?'حوار الحفظ الرسمي: «حفظ وترحيل» ينفّذ المخزون والمحاسبة، و«حفظ بدون ترحيل نهائي» يحفظ مسودة فقط — وليست فاتورة ضريبية.':'Official save dialog: Save & Post posts stock+accounting; Save Without Final Posting keeps a draft — not a tax invoice.'}</p>
+        <div className="row">
+          <button onClick={()=>alert(lang==='ar'?'حفظ وترحيل: يتطلب تسجيل الدخول وبيانات حقيقية من الخادم':'Save & Post: requires login and real server data')}>{lang==='ar'?'💾 حفظ وترحيل':'💾 Save & Post'}</button>
+          <button className="secondary" onClick={()=>alert(lang==='ar'?'تم الحفظ كمسودة (عرض واجهة — الربط الكامل مع الخادم في بيئة قاعدة البيانات)':'Saved as draft (UI demo — full server wiring needs the DB environment)')}>{lang==='ar'?'📝 حفظ بدون ترحيل نهائي':'📝 Save Without Final Posting'}</button>
+        </div>
+      </div>
       {!user ? <form onSubmit={login} className="login">
         <label>{s.tenant}<input value={form.tenantSlug} onChange={e=>setForm({...form,tenantSlug:e.target.value})}/></label>
         <label>{s.email}<input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label>
