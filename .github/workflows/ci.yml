@@ -26,4 +26,8 @@ jobs:
         working-directory: apps/api
       - run: npm run typecheck -ws --if-present
       - run: npm test
+      - name: integration tests (real Postgres)
+        env: { RUN_INTEGRATION: '1' }
+        run: npx vitest run test/integration.spec.ts
+        working-directory: apps/api
       - run: npm run build
