@@ -3,7 +3,7 @@
 _Last updated: 2026-10-14 (Phase 1 session). Update this file at the end of every session._
 
 ## Current state
-- **Phase:** 1 — Technical foundation **COMPLETE** (CI green incl. real-Postgres integration, run 38651921119). Phase 2 in progress.
+- **Phase:** 1 **COMPLETE**, 2 **COMPLETE** (CI green, run 38652363821). Next: Phase 3.
 - **Phase 0:** complete (docs package, owner said "ابدأ العمل" 2026-10-14 lifting the doc gate)
 
 ## Completed — Phase 1 (evidence-based)
@@ -58,3 +58,16 @@ No commits/pushes (per brief §18, not separately requested).
 ## Exact next step
 1. Get Postgres: push branch to run CI **or** provide a DATABASE_URL → run migrate+seed+login E2E.
 2. Then Phase 2: chart of accounts/mappings, journal engine, products/warehouses/movement ledger.
+
+## Phase 2 completion evidence (2026-10-15)
+- CI run 38652363821 SUCCESS incl. real-Postgres integration (as erp_app):
+  AT-ACC-001 balanced journal posts once under idempotency retry; trial balance = ledger;
+  reversal linked + second reversal rejected; AT-ACC-003 missing mapping blocks with
+  ConfigurationError; inventory moving-average issue cost = 3 (avg of 2/4), movement retry
+  not duplicated, oversell blocked, **concurrent issues of last stock: exactly 1 succeeded**,
+  balance↔ledger reconciliation drift = [].
+- Local: 10/10 unit tests pass; both migrations also applied on embedded Postgres and the
+  deferred journal-balance DB trigger verified to reject an unbalanced entry.
+- Known gaps carried forward: AT-DATE-001 timezone-boundary test not yet written (Phase 3);
+  FIFO costing not implemented (moving average only, per D-008/Q-007); transfers/counts/
+  reservations are Phase 4/5 scope; accounting UI screens land with Phase 3 POS work.
