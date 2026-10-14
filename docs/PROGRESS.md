@@ -3,7 +3,7 @@
 _Last updated: 2026-10-14 (Phase 1 session). Update this file at the end of every session._
 
 ## Current state
-- **Phase:** 1 — Technical foundation (**substantially built; DB-backed integration pending CI/real Postgres**)
+- **Phase:** 1 — Technical foundation **COMPLETE** (CI green incl. real-Postgres integration, run 38651921119). Phase 2 in progress.
 - **Phase 0:** complete (docs package, owner said "ابدأ العمل" 2026-10-14 lifting the doc gate)
 
 ## Completed — Phase 1 (evidence-based)
@@ -40,10 +40,14 @@ _Last updated: 2026-10-14 (Phase 1 session). Update this file at the end of ever
 | B-003 | binaries.prisma.sh unreachable from sandbox | `prisma generate` cannot run locally (D-014 workaround in place) | CI / DB-capable machine |
 | B-002 | ZATCA sandbox/legal answers (Q-001/Q-002) | Phase 6 only | Owner/legal |
 
-## Open items in Phase 1 before declaring it complete
-- Run CI once (needs push authorization) or provide Postgres → then: migrate, seed, login E2E,
-  cross-tenant integration test (AT-SEC-001 full), refresh-token rotation test.
-- Lint (eslint) not yet configured — typecheck+tests are the current gate (root `lint` script says so).
+## Phase 1 completion evidence (2026-10-14, user authorized push-per-phase)
+- CI run 38651921119 SUCCESS: npm ci → shared build → prisma generate → migrate deploy (Postgres 16)
+  → typecheck → unit tests → integration tests as non-owner `erp_app` → full build.
+- Integration verified on real Postgres: tenant provisioning, owner login + permission set
+  (no platform.admin), wrong-password rejection, cross-tenant login isolation, RLS tenant scoping.
+- CI debugging history (kept honest): Prisma one-line block syntax fix, base_currency @map fix,
+  superuser-RLS-bypass fix (erp_app role). Remaining Phase-1 debt: eslint not configured;
+  refresh-token rotation endpoint not yet implemented (sessions exist; rotation in Phase 3 hardening).
 
 ## Files changed (this session)
 Root scaffold (package.json, tsconfig.base, .env.example, .gitignore), `packages/shared/*`,
