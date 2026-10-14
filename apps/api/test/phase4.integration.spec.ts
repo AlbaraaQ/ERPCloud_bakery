@@ -21,7 +21,7 @@ describe.skipIf(!run)('Phase4 representatives/transfers/sync/settlement (real Po
   const parties = new PartiesService(prisma, acc);
   const sales = new SalesService(prisma, acc, inv, parties);
   const purch = new PurchasingService(prisma, acc, inv);
-  const notif = new NotificationsService();
+  const notif = new NotificationsService(prisma);
   const reps = new RepresentativesService(prisma, notif);
   const transfers = new TransfersService(prisma, acc, inv, reps, notif);
   const settlements = new SettlementsService(prisma, acc, inv, notif);
@@ -91,7 +91,7 @@ describe.skipIf(!run)('Phase4 representatives/transfers/sync/settlement (real Po
     const fin = await settlements.finalize(T, { settlementId: s1.id, counted, countedCash: '50', cashHandedOver: '50', businessDate: '2026-10-31' });
     expect(fin.finalized).toBe(true);
     const s2 = await settlements.request(T, { employeeId: employee, periodStart: '2026-10-01', periodEnd: '2026-10-31' });
-    const shortCounted = counted.map(c => ({ ...c, qty: '38' })); // 2 missing vs expected 40
+    const shortCounted = counted.map((c: any) => ({ ...c, qty: '38' })); // 2 missing vs expected 40
     const blocked = await settlements.finalize(T, { settlementId: s2.id, counted: shortCounted, countedCash: '50', cashHandedOver: '50', businessDate: '2026-10-31' });
     expect(blocked.finalized).toBe(false);
     const exs = await prisma.withTenant(T, (tx: any) => tx.settlementException.findMany({ where: { settlementId: s2.id, status: 'under_investigation' } }));
