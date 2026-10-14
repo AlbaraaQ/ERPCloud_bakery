@@ -89,7 +89,7 @@ describe.skipIf(!run)('Phase4 representatives/transfers/sync/settlement (real Po
     const lines = await prisma.withTenant(T, (tx: any) => tx.settlementLine.findMany({ where: { settlementId: s1.id } }));
     const counted = lines.map((l: any) => ({ productId: l.productId, qty: l.expectedQty.toString() }));
     const fin = await settlements.finalize(T, { settlementId: s1.id, counted, countedCash: '50', cashHandedOver: '50', businessDate: '2026-10-31' });
-    expect(fin.finalized).toBe(true);
+    expect(fin.finalized, JSON.stringify(fin).slice(0,400)).toBe(true);
     const s2 = await settlements.request(T, { employeeId: employee, periodStart: '2026-10-01', periodEnd: '2026-10-31' });
     const shortCounted = counted.map((c: any) => ({ ...c, qty: '38' })); // 2 missing vs expected 40
     const blocked = await settlements.finalize(T, { settlementId: s2.id, counted: shortCounted, countedCash: '50', cashHandedOver: '50', businessDate: '2026-10-31' });
@@ -103,6 +103,6 @@ describe.skipIf(!run)('Phase4 representatives/transfers/sync/settlement (real Po
     expect(decided.status).toBe('approved_adjustment');
     const bal = await inv.getBalance(T, P, repWh); expect(bal[0].qty.toString()).toBe('38');
     const fin2 = await settlements.finalize(T, { settlementId: s2.id, counted: [{ productId: P, qty: '38' }], countedCash: '50', cashHandedOver: '50', businessDate: '2026-10-31' });
-    expect(fin2.finalized).toBe(true);
+    expect(fin2.finalized, JSON.stringify(fin2).slice(0,400)).toBe(true);
   });
 });
