@@ -91,7 +91,7 @@ describe.skipIf(!run)('Phase3 sales/purchasing/cash (real Postgres)', () => {
     const exp = await cash.postExpense(T, { category: 'fuel', amount: '30', cashAccountId, businessDate: '2026-10-12', idempotencyKey: 'exp-1' });
     expect(exp.status).toBe('posted');
     const tb = await acc.trialBalance(T, '2026-10-31');
-    const td = tb.reduce((a, r) => a + Number(r.debit), 0), tc = tb.reduce((a, r) => a + Number(r.credit), 0);
+    const td = tb.reduce((a: number, r: any) => a + Number(r.debit), 0), tc = tb.reduce((a: number, r: any) => a + Number(r.credit), 0);
     expect(td).toBeCloseTo(tc, 2);
   });
 });
