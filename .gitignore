@@ -4,3 +4,7 @@ dist/
 *.log
 coverage/
 apps/web/dist/
+*.tsbuildinfo
+packages/*/src/*.js
+packages/*/src/*.d.ts
+packages/*/src/*.js.map
