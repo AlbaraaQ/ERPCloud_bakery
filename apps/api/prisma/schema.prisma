@@ -621,6 +621,7 @@ model TransferLine {
   dispatchedQty Decimal @map("dispatched_qty") @db.Decimal(19, 6)
   receivedQty Decimal @default(0) @map("received_qty") @db.Decimal(19, 6)
   disputedQty Decimal @default(0) @map("disputed_qty") @db.Decimal(19, 6)
+  resolvedQty Decimal @default(0) @map("resolved_qty") @db.Decimal(19, 6)
   disputeReason String? @map("dispute_reason")
   transfer StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
   @@map("transfer_lines")

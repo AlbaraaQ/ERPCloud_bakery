@@ -80,9 +80,9 @@ export class TransfersService {
         const amount = money(m.unitCost.toString()).times(money(qty));
         if (amount.gt(0)) await this.acc.postJournalTx(tx, tenantId, { businessDate: input.businessDate, description: 'عجز تحويل معتمد', lines: [{ accountId: lossAcc, debit: amount.toString(), credit: '0' }, { accountId: invAcc, debit: '0', credit: amount.toString() }], sourceType: 'stock_transfer', sourceId: tr.id, idempotencyKey: `${tr.idempotencyKey}:short-journal`, createdBy: input.resolvedBy });
       }
-      await tx.transferLine.update({ where: { id: line.id }, data: { disputedQty: 0 as never, disputeReason: null } });
+      await tx.transferLine.update({ where: { id: line.id }, data: { resolvedQty: money(line.receivedQty.toString()).isZero() ? (money(line.resolvedQty?.toString() ?? '0').plus(money(line.disputedQty.toString())) as never) : (money(line.resolvedQty?.toString() ?? '0').plus(money(line.disputedQty.toString())) as never), disputedQty: 0 as never, disputeReason: null } });
       const lines = await tx.transferLine.findMany({ where: { transferId: tr.id } });
-      const done = lines.every((x: any) => money(x.receivedQty.toString()).plus(money(x.disputedQty.toString())).gte(money(x.dispatchedQty.toString()))) && lines.every((x: any) => money(x.disputedQty.toString()).isZero());
+      const done = lines.every((x: any) => money(x.receivedQty.toString()).plus(money(x.resolvedQty?.toString() ?? '0')).gte(money(x.dispatchedQty.toString()))) && lines.every((x: any) => money(x.disputedQty.toString()).isZero());
       await tx.stockTransfer.update({ where: { id: tr.id }, data: { status: done ? 'closed' : tr.status } });
       return tx.stockTransfer.findUnique({ where: { id: tr.id }, include: { lines: true } });
     });
