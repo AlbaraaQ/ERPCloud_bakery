@@ -18,7 +18,7 @@ describe.skipIf(!run)('Phase1 integration (AT-SEC-001/002 partial)', () => {
 
   it('owner logs in and gets TENANT_OWNER permissions (no platform.admin)', async () => {
     const s = await auth.login(slug, 'owner@it.test', 'Strong-Pass-123!');
-    ownerPermissions = s.permissions;
+    ownerPermissions = s.permissions as string[];
     expect(ownerPermissions).toContain('sales.post');
     expect(ownerPermissions).not.toContain('platform.admin');
     const ctx = await auth.authenticate(s.accessToken);
