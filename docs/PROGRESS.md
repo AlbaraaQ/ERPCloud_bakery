@@ -3,7 +3,7 @@
 _Last updated: 2026-10-14 (Phase 1 session). Update this file at the end of every session._
 
 ## Current state
-- **Phase:** 1, 2, 3, 4 **COMPLETE** (latest CI green run 38655564074). Next: Phase 5 — production & advanced inventory.
+- **Phase:** 1–5 **COMPLETE** (latest CI green run 38656704921). Remaining: 6 (ZATCA), 7 (reporting), 8 (platform/backups), 9 (AI), 10 (hardening/release).
 - **Phase 0:** complete (docs package, owner said "ابدأ العمل" 2026-10-14 lifting the doc gate)
 
 ## Completed — Phase 1 (evidence-based)
@@ -105,3 +105,16 @@ No commits/pushes (per brief §18, not separately requested).
 - Carried gaps: commissions engine basic scope deferred (rules Q-009 open);
   settlement expected-cash covers cash allocations to rep invoices (e-payment
   settlement reconciliation UI is Phase 7); PWA background sync limitations per OFFLINE_SYNC §7.
+
+## Phase 5 completion evidence (2026-10-15)
+- CI run 38656704921 SUCCESS incl. Phase-5 integration on real Postgres:
+  AT-MFG-002 missing PRODUCTION_OVERHEAD mapping blocks completion and posts nothing
+  (order stays planned); AT-MFG-001: material 134 (52kg flour @2 + 10kg sugar @3)
+  + labour 100 = 234 total, abnormal scrap 5 units = 11.7 expensed to SCRAP_LOSS,
+  finished 95 @ 2.34, idempotent re-completion, lot genealogy flour-lot -> bread-lot,
+  variance flour planned 50 vs actual 52 (+2), trial balance balanced, zero stock drift.
+- Stock counts: counted 38 vs book 40 with reason posts adjustment movement+journal;
+  FEFO returns earliest-expiry lot first.
+- All 6 migrations also applied cleanly on embedded Postgres (59 tables).
+- Carried gaps: FIFO costing still not implemented (D-008/Q-007 open); WIP is direct
+  completion costing (no multi-stage WIP ledger); production UI screens are Phase 10 UX scope.
