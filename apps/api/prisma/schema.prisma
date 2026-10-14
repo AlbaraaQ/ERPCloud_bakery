@@ -584,3 +584,119 @@ model Expense {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   @@map("expenses")
 }
+
+model RepresentativeProfile {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  employeeId String @unique @map("employee_id") @db.Uuid
+  userId String? @map("user_id") @db.Uuid
+  warehouseId String @unique @map("warehouse_id") @db.Uuid
+  isActive Boolean @default(true) @map("is_active")
+  maxOfflineCredit Decimal @default(0) @map("max_offline_credit") @db.Decimal(19, 4)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@map("representative_profiles")
+}
+model StockTransfer {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  number Int?
+  fromWarehouseId String @map("from_warehouse_id") @db.Uuid
+  toWarehouseId String @map("to_warehouse_id") @db.Uuid
+  status String @default("draft") // draft|dispatched|partially_received|received|disputed|closed|cancelled
+  businessDate DateTime @map("business_date") @db.Date
+  dispatchedBy String? @map("dispatched_by") @db.Uuid
+  receivedBy String? @map("received_by") @db.Uuid
+  idempotencyKey String? @map("idempotency_key")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lines TransferLine[]
+  @@unique([tenantId, idempotencyKey])
+  @@map("stock_transfers")
+}
+model TransferLine {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  transferId String @map("transfer_id") @db.Uuid
+  productId String @map("product_id") @db.Uuid
+  lotId String? @map("lot_id") @db.Uuid
+  dispatchedQty Decimal @map("dispatched_qty") @db.Decimal(19, 6)
+  receivedQty Decimal @default(0) @map("received_qty") @db.Decimal(19, 6)
+  disputedQty Decimal @default(0) @map("disputed_qty") @db.Decimal(19, 6)
+  disputeReason String? @map("dispute_reason")
+  transfer StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  @@map("transfer_lines")
+}
+model Settlement {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  employeeId String @map("employee_id") @db.Uuid
+  warehouseId String @map("warehouse_id") @db.Uuid
+  status String @default("requested") // requested|under_review|finalized
+  periodStart DateTime @map("period_start") @db.Date
+  periodEnd DateTime @map("period_end") @db.Date
+  expectedCash Decimal @default(0) @map("expected_cash") @db.Decimal(19, 4)
+  countedCash Decimal? @map("counted_cash") @db.Decimal(19, 4)
+  cashHandedOver Decimal? @map("cash_handed_over") @db.Decimal(19, 4)
+  finalizedBy String? @map("finalized_by") @db.Uuid
+  finalizedAt DateTime? @map("finalized_at") @db.Timestamptz(6)
+  createdBy String? @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lines SettlementLine[]
+  exceptions SettlementException[]
+  @@map("settlements")
+}
+model SettlementLine {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  settlementId String @map("settlement_id") @db.Uuid
+  productId String @map("product_id") @db.Uuid
+  expectedQty Decimal @map("expected_qty") @db.Decimal(19, 6)
+  countedQty Decimal? @map("counted_qty") @db.Decimal(19, 6)
+  settlement Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  @@map("settlement_lines")
+}
+model SettlementException {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  settlementId String @map("settlement_id") @db.Uuid
+  kind String // stock_shortage|stock_surplus|cash_shortage|cash_surplus
+  productId String? @map("product_id") @db.Uuid
+  qty Decimal? @db.Decimal(19, 6)
+  amount Decimal? @db.Decimal(19, 4)
+  status String @default("under_investigation") // under_investigation|approved_adjustment|approved_employee_receivable|rejected
+  decisionBy String? @map("decision_by") @db.Uuid
+  decisionReason String? @map("decision_reason")
+  adjustmentJournalId String? @map("adjustment_journal_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  settlement Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  @@map("settlement_exceptions")
+}
+model SyncOperation {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  deviceId String? @map("device_id") @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  clientOpId String @map("client_op_id")
+  type String
+  payload Json
+  payloadHash String @map("payload_hash")
+  status String @default("received") // applied|rejected|conflict
+  resultDocumentId String? @map("result_document_id")
+  error String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@unique([tenantId, userId, clientOpId])
+  @@map("sync_operations")
+}
+model Notification {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  type String
+  title String
+  body String?
+  refType String? @map("ref_type")
+  refId String? @map("ref_id")
+  readAt DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@index([tenantId, userId, readAt])
+  @@map("notifications")
+}

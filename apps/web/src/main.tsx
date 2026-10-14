@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { t, type Lang } from './i18n';
+import { countByState, syncNow, enqueue } from './offline';
 import './styles.css';
 
 function App() {
@@ -9,6 +10,8 @@ function App() {
   const [health, setHealth] = useState('…');
   const [form, setForm] = useState({ tenantSlug:'demo', email:'', password:'' });
   const [user, setUser] = useState<any>(null);
+  const [syncCounts, setSyncCounts] = useState<Record<string, number>>({});
+  useEffect(()=>{ countByState().then(setSyncCounts).catch(()=>{}); },[]);
   const s = t[lang];
   useEffect(()=>{ document.documentElement.dataset.theme = theme; },[theme]);
   useEffect(()=>{ document.documentElement.lang = lang; document.documentElement.dir = lang==='ar'?'rtl':'ltr'; },[lang]);
@@ -29,6 +32,9 @@ function App() {
       <div className="card pos">
         <h2>{lang==='ar'?'نقطة البيع — فاتورة جديدة':'POS — New invoice'}</h2>
         <p className="muted">{lang==='ar'?'حوار الحفظ الرسمي: «حفظ وترحيل» ينفّذ المخزون والمحاسبة، و«حفظ بدون ترحيل نهائي» يحفظ مسودة فقط — وليست فاتورة ضريبية.':'Official save dialog: Save & Post posts stock+accounting; Save Without Final Posting keeps a draft — not a tax invoice.'}</p>
+        <p>🔄 {lang==='ar'?'حالة المزامنة':'Sync'}: {Object.entries(syncCounts).map(([k,v])=>`${k}:${v}`).join(' · ') || (lang==='ar'?'لا عمليات معلقة':'no pending ops')}
+          <button className="secondary" onClick={async()=>{ try{ await enqueue('sales_invoice',{ note:'demo-op' }); setSyncCounts(await countByState()); }catch{} }}>{lang==='ar'?'إضافة عملية محلية (تجريبي)':'Queue local op (demo)'}</button>
+          <button onClick={async()=>{ try{ await syncNow(); }catch{} setSyncCounts(await countByState()); }}>{lang==='ar'?'مزامنة الآن':'Sync now'}</button></p>
         <div className="row">
           <button onClick={()=>alert(lang==='ar'?'حفظ وترحيل: يتطلب تسجيل الدخول وبيانات حقيقية من الخادم':'Save & Post: requires login and real server data')}>{lang==='ar'?'💾 حفظ وترحيل':'💾 Save & Post'}</button>
           <button className="secondary" onClick={()=>alert(lang==='ar'?'تم الحفظ كمسودة (عرض واجهة — الربط الكامل مع الخادم في بيئة قاعدة البيانات)':'Saved as draft (UI demo — full server wiring needs the DB environment)')}>{lang==='ar'?'📝 حفظ بدون ترحيل نهائي':'📝 Save Without Final Posting'}</button>

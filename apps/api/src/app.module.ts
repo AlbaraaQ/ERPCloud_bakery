@@ -18,10 +18,16 @@ import { PurchasingService } from './purchasing/purchasing.service';
 import { PurchasingController } from './purchasing/purchasing.controller';
 import { CashService } from './cash/cash.service';
 import { CashController } from './cash/cash.controller';
+import { NotificationsService } from './notifications/notifications.service';
+import { RepresentativesService } from './representatives/representatives.service';
+import { TransfersService } from './transfers/transfers.service';
+import { SettlementsService } from './settlements/settlements.service';
+import { SyncService } from './sync/sync.service';
+import { RepresentativesController } from './representatives/representatives.controller';
 import { PermissionsGuard } from './rbac/permissions.guard';
 import { APP_GUARD } from '@nestjs/core';
 import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
-@Module({ controllers: [AuthController, HealthController, AccountingController, InventoryController, PartiesController, SalesController, PurchasingController, CashController], providers: [PrismaService, AuditService, AuthService, JobsService, AccountingService, InventoryService, PartiesService, SalesService, PurchasingService, CashService, { provide: APP_GUARD, useClass: PermissionsGuard }] })
+@Module({ controllers: [AuthController, HealthController, AccountingController, InventoryController, PartiesController, SalesController, PurchasingController, CashController, RepresentativesController], providers: [PrismaService, AuditService, AuthService, JobsService, AccountingService, InventoryService, PartiesService, SalesService, PurchasingService, CashService, NotificationsService, RepresentativesService, TransfersService, SettlementsService, SyncService, { provide: APP_GUARD, useClass: PermissionsGuard }] })
 export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) { consumer.apply(AuthMiddleware).forRoutes(AccountingController, InventoryController, PartiesController, SalesController, PurchasingController, CashController); }
+  configure(consumer: MiddlewareConsumer) { consumer.apply(AuthMiddleware).forRoutes(AccountingController, InventoryController, PartiesController, SalesController, PurchasingController, CashController, RepresentativesController); }
 }
