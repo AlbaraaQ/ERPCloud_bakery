@@ -1,0 +1,24 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres: { image: postgres:16, env: { POSTGRES_USER: erp, POSTGRES_PASSWORD: erp, POSTGRES_DB: erpcloud_test }, ports: ['5432:5432'], options: --health-cmd pg_isready --health-interval 5s --health-timeout 3s --health-retries 10 }
+    env:
+      DATABASE_URL: postgresql://erp:erp@localhost:5432/erpcloud_test?schema=public
+      SESSION_SECRET: ci-secret-at-least-32-characters-long
+      SEED_OWNER_PASSWORD: Ci-Strong-Pass-123!
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run build -w @erpcloud/shared
+      - run: npx prisma generate
+        working-directory: apps/api
+      - run: npx prisma migrate deploy
+        working-directory: apps/api
+      - run: npm run typecheck -ws --if-present
+      - run: npm test
+      - run: npm run build
