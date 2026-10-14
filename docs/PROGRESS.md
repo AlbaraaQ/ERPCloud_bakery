@@ -3,7 +3,7 @@
 _Last updated: 2026-10-14 (Phase 1 session). Update this file at the end of every session._
 
 ## Current state
-- **Phase:** 1 **COMPLETE**, 2 **COMPLETE** (CI green, run 38652363821). Next: Phase 3.
+- **Phase:** 1, 2, 3 **COMPLETE** (latest CI green run 38653388414). Next: Phase 4 — representative workflow & offline sync.
 - **Phase 0:** complete (docs package, owner said "ابدأ العمل" 2026-10-14 lifting the doc gate)
 
 ## Completed — Phase 1 (evidence-based)
@@ -71,3 +71,18 @@ No commits/pushes (per brief §18, not separately requested).
 - Known gaps carried forward: AT-DATE-001 timezone-boundary test not yet written (Phase 3);
   FIFO costing not implemented (moving average only, per D-008/Q-007); transfers/counts/
   reservations are Phase 4/5 scope; accounting UI screens land with Phase 3 POS work.
+
+## Phase 3 completion evidence (2026-10-15)
+- CI run 38653388414 SUCCESS incl. Phase-3 integration on real Postgres:
+  AT-SALE-001 cash sale (total 115 incl. 15% VAT, stock 100→90, idempotent repost);
+  AT-SALE-002 free goods (5 paid + 2 free → stock −7, cost via FREE_GOODS_EXPENSE);
+  AT-PRICE-001/002 out-of-bounds price rejected, approved override recorded
+  (original 10 vs actual 11), master price unchanged; credit-limit rejection;
+  draft purity (no stock/accounting effect) then post-draft; credit-note return
+  restores stock at original cost; posting outside a fiscal period blocked;
+  receipt moves party balance exactly −20; trial balance debit=credit; zero stock drift.
+- Architecture: sales/purchasing compose document+stock+journal in ONE DB transaction
+  via new Tx variants of Accounting/Inventory services (single-authority rule kept).
+- Carried gaps: POS web panel is a UI shell (live data wiring needs DB env); tax engine is
+  rate-per-product only — full ZATCA is Phase 6 (Q-001/Q-002/Q-003 still open); supplier
+  payments use CashService.postPayment; bank reconciliation UI is Phase 7 reporting scope.
