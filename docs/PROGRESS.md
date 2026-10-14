@@ -3,7 +3,7 @@
 _Last updated: 2026-10-14 (Phase 1 session). Update this file at the end of every session._
 
 ## Current state
-- **Phase:** 1, 2, 3 **COMPLETE** (latest CI green run 38653388414). Next: Phase 4 — representative workflow & offline sync.
+- **Phase:** 1, 2, 3, 4 **COMPLETE** (latest CI green run 38655564074). Next: Phase 5 — production & advanced inventory.
 - **Phase 0:** complete (docs package, owner said "ابدأ العمل" 2026-10-14 lifting the doc gate)
 
 ## Completed — Phase 1 (evidence-based)
@@ -86,3 +86,22 @@ No commits/pushes (per brief §18, not separately requested).
 - Carried gaps: POS web panel is a UI shell (live data wiring needs DB env); tax engine is
   rate-per-product only — full ZATCA is Phase 6 (Q-001/Q-002/Q-003 still open); supplier
   payments use CashService.postPayment; bank reconciliation UI is Phase 7 reporting scope.
+
+## Phase 4 completion evidence (2026-10-15)
+- CI run 38655564074 SUCCESS incl. Phase-4 integration on real Postgres:
+  AT-REP-001 double role assignment -> exactly one rep warehouse; transfer dispatch
+  notifies rep, custody sellable only after acceptance; partial accept 45 + dispute 5,
+  over-receipt rejected (cannot receive twice), approved shortage closes transfer
+  (resolvedQty tracking added via new migration); AT-OFF: offline sale syncs once,
+  duplicate push returns original doc, tampered payload = conflict (never applied),
+  oversell op rejected, zero stock drift; AT-SET: normal settlement finalizes,
+  shortage blocks closure as exception with **zero** employee-debt journals,
+  approved adjustment posts stock+journal, then closure succeeds.
+- Web: real IndexedDB outbox (client op ids, states, sync-now, backoff helper) wired
+  to /representatives/sync/push.
+- Debugging honesty: two real bugs were caught by CI tests and fixed — dispute
+  resolution could never close a transfer, and decided exceptions spawned fresh
+  open exceptions at finalize (infinite block).
+- Carried gaps: commissions engine basic scope deferred (rules Q-009 open);
+  settlement expected-cash covers cash allocations to rep invoices (e-payment
+  settlement reconciliation UI is Phase 7); PWA background sync limitations per OFFLINE_SYNC §7.
