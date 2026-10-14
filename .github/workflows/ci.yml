@@ -2,7 +2,7 @@ name: CI
 on: [push, pull_request]
 jobs:
   build-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # pinned: Prisma 5 engine platform detection
     services:
       postgres: { image: postgres:16, env: { POSTGRES_USER: erp, POSTGRES_PASSWORD: erp, POSTGRES_DB: erpcloud_test }, ports: ['5432:5432'], options: --health-cmd pg_isready --health-interval 5s --health-timeout 3s --health-retries 10 }
     env:
