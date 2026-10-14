@@ -26,8 +26,12 @@ jobs:
         working-directory: apps/api
       - run: npm run typecheck -ws --if-present
       - run: npm test
-      - name: integration tests (real Postgres)
-        env: { RUN_INTEGRATION: '1' }
+      - name: create non-owner app role (RLS requires it, D-013)
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/prisma/app-role.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "ALTER ROLE erp_app PASSWORD 'erpapp';"
+      - name: integration tests (real Postgres, as erp_app)
+        env: { RUN_INTEGRATION: '1', DATABASE_URL: 'postgresql://erp_app:erpapp@localhost:5432/erpcloud_test?schema=public' }
         run: npx vitest run test/integration.spec.ts
         working-directory: apps/api
       - run: npm run build
