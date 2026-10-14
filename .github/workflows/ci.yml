@@ -31,6 +31,6 @@ jobs:
         run: npx prisma db execute --file prisma/app-role.sql
       - name: integration tests (real Postgres, as erp_app)
         env: { RUN_INTEGRATION: '1', DATABASE_URL: 'postgresql://erp_app:CHANGE_ME@localhost:5432/erpcloud_test?schema=public' }
-        run: npx vitest run test/integration.spec.ts
+        run: npx vitest run test/
         working-directory: apps/api
       - run: npm run build
