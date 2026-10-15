@@ -406,7 +406,7 @@ function UsersBox({ m, run }: any) {
       <input type="password" placeholder="كلمة مرور (10+ حروف وأرقام)" value={f.password} onChange={e => setF({ ...f, password: e.target.value })} />
       <select value={f.roleCode} onChange={e => setF({ ...f, roleCode: e.target.value })}>{roles.map((r: any) => <option key={r.id} value={r.code}>{r.code}</option>)}</select>
       <button onClick={async () => { await run(() => api('/master/users/create', f), 'تم إنشاء المستخدم'); load(); }}>إنشاء مستخدم</button></div>
-    <Table rows={users.map((u: any) => ({ email: u.email, displayName: u.displayName, isActive: u.isActive, roles: u.roles?.map((x: any) => x.role?.code).join(',') }))} />
+    <Table rows={users.map((u: any) => ({ email: u.email, displayName: u.displayName, status: u.status, roles: u.roles?.map((x: any) => x.role?.code).join(',') }))} />
     <p className="muted">الأدوار المتاحة: {roles.map((r: any) => r.code).join(' · ') || '—'} — مالك الشركة (TENANT_OWNER) يملك كل الصلاحيات عدا إدارة المنصة.</p></div>;
 }
 

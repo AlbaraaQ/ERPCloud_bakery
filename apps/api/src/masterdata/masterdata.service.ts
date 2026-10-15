@@ -66,7 +66,7 @@ export class MasterDataService {
   listBoms(t: string) { return this.prisma.withTenant(t, (tx: any) => tx.bom.findMany({ where: { tenantId: t }, include: { lines: true }, orderBy: { createdAt: 'desc' } })); }
   listProductionOrders(t: string) { return this.prisma.withTenant(t, (tx: any) => tx.productionOrder.findMany({ where: { tenantId: t }, orderBy: { createdAt: 'desc' }, take: 100 })); }
 
-  listUsers(t: string) { return this.prisma.withTenant(t, (tx: any) => tx.user.findMany({ where: { tenantId: t }, select: { id: true, email: true, displayName: true, isActive: true, createdAt: true, roles: { include: { role: true } } }, orderBy: { createdAt: 'asc' } })); }
+  listUsers(t: string) { return this.prisma.withTenant(t, (tx: any) => tx.user.findMany({ where: { tenantId: t }, select: { id: true, email: true, displayName: true, status: true, createdAt: true, roles: { include: { role: true } } }, orderBy: { createdAt: 'asc' } })); }
   listRoles(t: string) { return this.prisma.withTenant(t, (tx: any) => tx.role.findMany({ where: { tenantId: t }, include: { permissions: true }, orderBy: { code: 'asc' } })); }
   async createUser(t: string, d: { email: string; password: string; displayName: string; roleCode: string }) {
     const policyError = passwordPolicy(d.password); if (policyError) throw new Error(policyError);
