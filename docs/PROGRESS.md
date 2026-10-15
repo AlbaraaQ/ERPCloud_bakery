@@ -3,7 +3,7 @@
 _Last updated: 2026-10-14 (Phase 1 session). Update this file at the end of every session._
 
 ## Current state
-- **Phase:** 1–8 **COMPLETE** (6 at sandbox-boundary level) (latest CI green run 38660019337). Remaining: 9 (AI), 10 (hardening/release).
+- **Phase:** 1–9 **COMPLETE** (6 at sandbox-boundary level) (latest CI green run 38660937722). Remaining: 10 (hardening/release) only.
 - **Phase 0:** complete (docs package, owner said "ابدأ العمل" 2026-10-14 lifting the doc gate)
 
 ## Completed — Phase 1 (evidence-based)
@@ -158,3 +158,13 @@ No commits/pushes (per brief §18, not separately requested).
   documents the distinction); Google Drive OAuth linking requires deployment credentials;
   automated 4h scheduling hook = jobs worker in Phase 10 ops scope; restore is a verified
   artifact + documented drill procedure, not an in-app one-click restore (by design).
+
+## Phase 9 completion evidence (2026-10-15)
+- CI run 38660937722 SUCCESS incl. AT-AI-001 on real Postgres: sales question answered from
+  reporting services (totalNet 100) in structured mode with no provider; tool denied without
+  reports.view and the denial itself audited; ai.use gate enforced; fake provider receives
+  only tool data + guardrail system prompt and merely phrases the answer; a sensitive
+  collection-reminder request creates a pending-approval record and changes ZERO journal
+  entries; a second tenant's identical question returns 0 (tenant isolation).
+- Carried gaps: no streaming chat UI (panel hook is Phase 10 UX); anomaly-scan tool and
+  provider cost quotas are follow-ups; real provider keys are deployment-time config.
