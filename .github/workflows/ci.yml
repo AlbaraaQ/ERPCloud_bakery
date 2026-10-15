@@ -46,7 +46,7 @@ jobs:
             $DC ps
             echo "--- migrate logs ---"; $DC logs migrate | tail -30
             echo "--- api logs ---"; $DC logs api | tail -30
-            echo "::error title=prod-smoke::$1 :: $( ($DC logs migrate api 2>/dev/null | grep -iE 'error|fail|fatal|panic|exception' | tail -c 1800 | tr '\n' '|') )"
+            echo "::error title=prod-smoke::$1 :: $( ($DC logs migrate 2>/dev/null | grep -oE '(PrismaClientInitializationError|PrismaClientKnownRequestError|Error:)[^|]{0,400}' | head -c 1600 | tr '\n' '|') )"
             $DC down -v
             exit 1
           }
