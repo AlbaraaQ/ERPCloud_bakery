@@ -28,6 +28,9 @@ function App() {
         <button onClick={()=>setLang(lang==='ar'?'en':'ar')}>{lang==='ar'?'English':'العربية'}</button>
         <button onClick={()=>setTheme(theme==='light'?'dark':'light')}>{theme==='light'?'🌙':'☀️'} {s.toggleTheme}</button>
       </header>
+      <section className="card"><h2>{lang==='ar'?'لوحة المؤشرات والتقارير':'Dashboard & reports'}</h2>
+      <p className="muted">{lang==='ar'?'المؤشرات تُحسب من الدفاتر الرسمية حصراً (قيود مرحّلة وحركات مخزون) — مسار API: ‎/api/v1/reports/*‎ بصلاحية reports.view، مع فحوص مطابقة: توازن ميزان المراجعة، انحراف المخزون، تقييم المخزون مقابل حساب المخزون في الأستاذ.':'Indicators derive only from authoritative ledgers via /api/v1/reports/* (reports.view), with reconciliation checks: trial-balance, stock drift, valuation vs GL.'}</p>
+      <div className="row">{['trial-balance','income-statement','balance-sheet','aging','sales','inventory-valuation','reconciliations','dashboard'].map(r=><span key={r} className="chip">{r}</span>)}</div></section>
       <section className="card"><h1>{s.welcome}</h1><p>{s.desc}</p><p className="ok">✅ {s.foundation}</p>
       <div className="card pos">
         <h2>{lang==='ar'?'نقطة البيع — فاتورة جديدة':'POS — New invoice'}</h2>

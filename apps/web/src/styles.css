@@ -9,3 +9,4 @@ button{background:var(--primary);color:#fff;border:0;border-radius:10px;padding:
 .login{display:grid;gap:12px;max-width:420px}.login label{display:grid;gap:6px;color:var(--muted)}.login input{padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font:inherit}
 @media(max-width:700px){aside{display:none}}
 .pos{margin:16px 0}.row{display:flex;gap:10px;flex-wrap:wrap}.secondary{background:var(--surface)!important;color:var(--primary)!important;border:1px solid var(--primary)!important}.muted{color:var(--muted)}
+.chip{border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:13px}
