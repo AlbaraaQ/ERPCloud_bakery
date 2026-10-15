@@ -910,3 +910,29 @@ model BackupJob {
   @@index([kind, status, createdAt])
   @@map("backup_jobs")
 }
+
+model AiProviderConfig {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  provider String // openai-compatible adapter key (e.g. openai, deepseek, custom)
+  baseUrl String @map("base_url")
+  model String
+  secretRef String @map("secret_ref") // env/secret-store reference NAME for the API key
+  isEnabled Boolean @default(false) @map("is_enabled")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@unique([tenantId, provider])
+  @@map("ai_provider_configs")
+}
+model AiToolCall {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  tool String
+  argsHash String @map("args_hash")
+  permission String
+  status String @default("executed") // executed|denied|pending_approval|approved|rejected
+  resultSummary String? @map("result_summary")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@index([tenantId, userId, createdAt])
+  @@map("ai_tool_calls")
+}
