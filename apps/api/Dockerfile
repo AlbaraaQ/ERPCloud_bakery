@@ -1,4 +1,9 @@
 FROM node:22-alpine AS build
+# OpenSSL must exist BEFORE `prisma generate` so the generated query engine
+# targets linux-musl-openssl-3.0.x (matching the runtime image). Without it
+# the client generates a 1.1.x engine and crashes at first DB connection
+# with PrismaClientInitializationError despite a green docker build.
+RUN apk add --no-cache openssl libc6-compat
 WORKDIR /repo
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages ./packages
