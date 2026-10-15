@@ -815,3 +815,47 @@ model StockCountLine {
   count StockCount @relation(fields: [countId], references: [id], onDelete: Cascade)
   @@map("stock_count_lines")
 }
+
+model ZatcaCredential {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  environment String // sandbox|production
+  secretRef String @map("secret_ref") // reference NAME in the secret store — never the secret itself
+  status String @default("configured") // configured|revoked
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@unique([tenantId, environment])
+  @@map("zatca_credentials")
+}
+model TaxCounter {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  environment String
+  lastIcv Int @default(0) @map("last_icv")
+  lastHash String? @map("last_hash")
+  @@unique([tenantId, environment])
+  @@map("tax_counters")
+}
+model TaxSubmission {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  documentType String @map("document_type") // sales_invoice|credit_note|debit_note
+  documentId String @map("document_id") @db.Uuid
+  kind String // standard|standard_note|simplified|simplified_note
+  environment String
+  uuid String @db.Uuid
+  icv Int
+  previousHash String? @map("previous_hash")
+  invoiceHash String @map("invoice_hash")
+  qrPayload String? @map("qr_payload")
+  xml String?
+  xmlHash String @map("xml_hash")
+  status String @default("pending") // pending|cleared|reported|rejected|failed
+  submissionRef String? @map("submission_ref")
+  responseCode String? @map("response_code")
+  attempts Int @default(0)
+  lastError String? @map("last_error")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  @@unique([tenantId, documentType, documentId, environment])
+  @@map("tax_submissions")
+}

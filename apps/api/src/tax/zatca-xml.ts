@@ -1,0 +1,20 @@
+import { createHash } from 'node:crypto';
+import { money } from '@erpcloud/shared';
+export interface InvoiceForXml { uuid: string; icv: number; previousHash: string; issueDate: string; issueTime: string; sellerName: string; sellerVat: string; buyerVat?: string; kind: string; subtotal: string; taxTotal: string; total: string; lines: { name: string; qty: string; price: string; taxRate: string; taxAmount: string; lineTotal: string }[]; originalUuid?: string; }
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+/**
+ * Minimal UBL 2.1 invoice document carrying the fields our pipeline hashes and submits.
+ * NOTE (INVOICING_AND_ZATCA.md): the production profile must be validated against the
+ * current official ZATCA SDK/spec at onboarding time; this generator is the integration
+ * boundary's payload builder, not a compliance claim.
+ */
+export function buildInvoiceXml(i: InvoiceForXml): string {
+  const lines = i.lines.map((l, idx) => `<cac:InvoiceLine><cbc:ID>${idx + 1}</cbc:ID><cbc:InvoicedQuantity>${money(l.qty).toString()}</cbc:InvoicedQuantity><cbc:LineExtensionAmount currencyID="SAR">${money(l.lineTotal).minus(money(l.taxAmount)).toFixed(2)}</cbc:LineExtensionAmount><cac:Item><cbc:Name>${esc(l.name)}</cbc:Name><cac:ClassifiedTaxCategory><cbc:Percent>${money(l.taxRate).toString()}</cbc:Percent></cac:ClassifiedTaxCategory></cac:Item><cac:Price><cbc:PriceAmount currencyID="SAR">${money(l.price).toFixed(2)}</cbc:PriceAmount></cac:Price></cac:InvoiceLine>`).join('');
+  return `<?xml version="1.0" encoding="UTF-8"?><Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"><cbc:ProfileID>reporting:1.0</cbc:ProfileID><cbc:ID>${i.icv}</cbc:ID><cbc:UUID>${i.uuid}</cbc:UUID><cbc:IssueDate>${i.issueDate}</cbc:IssueDate><cbc:IssueTime>${i.issueTime}</cbc:IssueTime><cbc:InvoiceTypeCode name="${i.kind === 'standard' ? '383' : '388'}">${i.kind.includes('note') ? '383' : '388'}</cbc:InvoiceTypeCode><cac:AdditionalDocumentReference><cbc:ID>ICV</cbc:ID><cbc:UUID>${i.icv}</cbc:UUID></cac:AdditionalDocumentReference><cac:AdditionalDocumentReference><cbc:ID>PIH</cbc:ID><cac:Attachment><cbc:EmbeddedDocumentBinaryObject mimeCode="text/plain">${i.previousHash}</cbc:EmbeddedDocumentBinaryObject></cac:Attachment></cac:AdditionalDocumentReference><cac:AccountingSupplierParty><cac:Party><cac:PartyTaxScheme><cbc:CompanyID>${esc(i.sellerVat)}</cbc:CompanyID></cac:PartyTaxScheme><cac:PartyLegalEntity><cbc:RegistrationName>${esc(i.sellerName)}</cbc:RegistrationName></cac:PartyLegalEntity></cac:Party></cac:AccountingSupplierParty>${i.buyerVat ? `<cac:AccountingCustomerParty><cac:Party><cac:PartyTaxScheme><cbc:CompanyID>${esc(i.buyerVat)}</cbc:CompanyID></cac:PartyTaxScheme></cac:Party></cac:AccountingCustomerParty>` : ''}<cac:TaxTotal><cbc:TaxAmount currencyID="SAR">${money(i.taxTotal).toFixed(2)}</cbc:TaxAmount></cac:TaxTotal><cac:LegalMonetaryTotal><cbc:LineExtensionAmount currencyID="SAR">${money(i.subtotal).toFixed(2)}</cbc:LineExtensionAmount><cbc:TaxInclusiveAmount currencyID="SAR">${money(i.total).toFixed(2)}</cbc:TaxInclusiveAmount><cbc:PayableAmount currencyID="SAR">${money(i.total).toFixed(2)}</cbc:PayableAmount></cac:LegalMonetaryTotal>${lines}</Invoice>`;
+}
+export const sha256B64 = (s: string) => createHash('sha256').update(s, 'utf8').digest('base64');
+/** ZATCA QR Phase-1 TLV encoding (tags 1-5): seller name, VAT, timestamp, total, VAT total — Base64. */
+export function buildQrPayload(input: { sellerName: string; sellerVat: string; timestamp: string; total: string; taxTotal: string }): string {
+  const tlv = (tag: number, value: string) => { const v = Buffer.from(value, 'utf8'); return Buffer.concat([Buffer.from([tag, v.length]), v]); };
+  return Buffer.concat([tlv(1, input.sellerName), tlv(2, input.sellerVat), tlv(3, input.timestamp), tlv(4, money(input.total).toFixed(2)), tlv(5, money(input.taxTotal).toFixed(2))]).toString('base64');
+}
