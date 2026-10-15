@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { INestApplication } from '@nestjs/common';
+import { Catch, HttpException, type ArgumentsHost, type ExceptionFilter, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module';
@@ -17,7 +17,6 @@ describe.skipIf(!run)('Phase10 HTTP E2E + hardening + restore drill', () => {
     process.env.BACKUP_ENCRYPTION_KEY = 'ci-backup-key-at-least-32-characters-long';
     const mod = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = mod.createNestApplication(); app.setGlobalPrefix('api/v1'); app.use(cookieParser());
-    const { ArgumentsHost, Catch, ExceptionFilter, HttpException } = await import('@nestjs/common');
     @Catch() class DebugFilter implements ExceptionFilter { catch(e: any, host: ArgumentsHost) { const res = host.switchToHttp().getResponse(); res.status(e instanceof HttpException ? e.getStatus() : 500).json({ debug: String(e?.stack ?? e).slice(0, 800) }); } }
     app.useGlobalFilters(new DebugFilter());
     await app.listen(0);
