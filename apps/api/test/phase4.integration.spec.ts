@@ -12,6 +12,7 @@ import { TransfersService } from '../src/transfers/transfers.service';
 import { SettlementsService } from '../src/settlements/settlements.service';
 import { SyncService } from '../src/sync/sync.service';
 import { NotificationsService } from '../src/notifications/notifications.service';
+import { PlatformService } from '../src/platform/platform.service';
 
 const run = process.env.RUN_INTEGRATION === '1';
 describe.skipIf(!run)('Phase4 representatives/transfers/sync/settlement (real Postgres)', () => {
@@ -22,7 +23,7 @@ describe.skipIf(!run)('Phase4 representatives/transfers/sync/settlement (real Po
   const sales = new SalesService(prisma, acc, inv, parties);
   const purch = new PurchasingService(prisma, acc, inv);
   const notif = new NotificationsService(prisma);
-  const reps = new RepresentativesService(prisma, notif);
+  const reps = new RepresentativesService(prisma, notif, new PlatformService(prisma, auth));
   const transfers = new TransfersService(prisma, acc, inv, reps, notif);
   const settlements = new SettlementsService(prisma, acc, inv, notif);
   const sync = new SyncService(prisma, sales);

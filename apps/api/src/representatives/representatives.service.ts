@@ -2,15 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { DomainError } from '@erpcloud/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PlatformService } from '../platform/platform.service';
 
 @Injectable()
 export class RepresentativesService {
-  constructor(private prisma: PrismaService, private notif: NotificationsService) {}
+  constructor(private prisma: PrismaService, private notif: NotificationsService, private platform: PlatformService) {}
   /** AT-REP-001: assigning the rep role creates exactly one linked warehouse, idempotently. */
   async assign(tenantId: string, input: { employeeId: string; userId?: string }) {
     return this.prisma.withTenant(tenantId, async (tx: any) => {
       const existing = await tx.representativeProfile.findUnique({ where: { employeeId: input.employeeId } });
       if (existing) { if (!existing.isActive) await tx.representativeProfile.update({ where: { id: existing.id }, data: { isActive: true, userId: input.userId ?? existing.userId } }); return tx.representativeProfile.findUnique({ where: { id: existing.id } }); }
+      await this.platform.assertQuota(tx, tenantId, 'representatives');
       const emp = await tx.employee.findUnique({ where: { id: input.employeeId } });
       if (!emp || emp.tenantId !== tenantId) throw new DomainError('NOT_FOUND', 'الموظف غير موجود');
       const byWh = await tx.warehouse.findUnique({ where: { employeeId: input.employeeId } });

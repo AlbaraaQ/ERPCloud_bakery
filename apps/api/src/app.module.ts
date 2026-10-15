@@ -32,10 +32,14 @@ import { TaxController } from './tax/tax.controller';
 import { HttpZatcaGateway } from './tax/zatca.gateway';
 import { ReportingService } from './reporting/reporting.service';
 import { ReportingController } from './reporting/reporting.controller';
+import { PlatformService } from './platform/platform.service';
+import { BackupService, HttpDriveGateway } from './platform/backup.service';
+import { PlatformController } from './platform/platform.controller';
+import { PlatformMiddleware } from './platform/platform.middleware';
 import { PermissionsGuard } from './rbac/permissions.guard';
 import { APP_GUARD } from '@nestjs/core';
 import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
-@Module({ controllers: [AuthController, HealthController, AccountingController, InventoryController, PartiesController, SalesController, PurchasingController, CashController, RepresentativesController, ManufacturingController, TaxController, ReportingController], providers: [PrismaService, AuditService, AuthService, JobsService, AccountingService, InventoryService, PartiesService, SalesService, PurchasingService, CashService, NotificationsService, RepresentativesService, TransfersService, SettlementsService, SyncService, StockCountsService, ManufacturingService, TaxService, HttpZatcaGateway, ReportingService, { provide: APP_GUARD, useClass: PermissionsGuard }] })
+@Module({ controllers: [AuthController, HealthController, AccountingController, InventoryController, PartiesController, SalesController, PurchasingController, CashController, RepresentativesController, ManufacturingController, TaxController, ReportingController, PlatformController], providers: [PrismaService, AuditService, AuthService, JobsService, AccountingService, InventoryService, PartiesService, SalesService, PurchasingService, CashService, NotificationsService, RepresentativesService, TransfersService, SettlementsService, SyncService, StockCountsService, ManufacturingService, TaxService, HttpZatcaGateway, ReportingService, PlatformService, BackupService, HttpDriveGateway, { provide: APP_GUARD, useClass: PermissionsGuard }] })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) { consumer.apply(AuthMiddleware).forRoutes(AccountingController, InventoryController, PartiesController, SalesController, PurchasingController, CashController, RepresentativesController, ManufacturingController, TaxController, ReportingController); }
 }
