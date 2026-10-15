@@ -221,3 +221,20 @@ No commits/pushes (per brief §18, not separately requested).
   (2) permission-catalogue upsert P2002 race under parallel tenant provisioning —
   fixed with createMany skipDuplicates in both seed and AuthService provisioning.
 - For the user's Windows local P1012: copy apps/api/.env.example to apps/api/.env.
+
+## Web UI rebuild + master-data module (2026-10-15, user feedback: UI was a Phase-1 shell)
+- User correctly rejected the web UI as a toy (dead nav, "Phase 1 foundation" text).
+  Backend also genuinely lacked master-data/list endpoints, making real use impossible.
+- Added apps/api/src/masterdata (accounts, mappings, fiscal years with 12 periods,
+  units, products, warehouses, parties/employees lists, cash accounts, stock balances,
+  invoices/journals/supplier-invoices/expenses lists, boms/orders/transfers/settlements
+  lists, tenant VAT settings) — no migration needed (models already existed).
+- Rebuilt apps/web into working pages: dashboard with setup-wizard status, POS/sales
+  (حفظ وترحيل / حفظ بدون ترحيل نهائي), purchases, parties + statements, inventory
+  (units/products/warehouses/opening balances/valuation), accounting (chart, balanced
+  manual journals, posted journal list, trial balance), manufacturing (BOM/orders/
+  completion), representatives (employees, assignment, transfers, settlements),
+  reports (TB/IS/BS/sales/valuation/aging/ledger/reconciliations), settings wizard.
+- Fixed Parties statement GET-with-body -> POST (browsers cannot call the old shape).
+- AT-UI-001/002 (phase11.integration.spec) prove the exact setup path the UI calls,
+  ending in a posted sale with trial-balance difference 0 — verified in CI.
