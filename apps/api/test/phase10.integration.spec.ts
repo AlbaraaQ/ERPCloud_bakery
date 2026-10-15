@@ -16,7 +16,11 @@ describe.skipIf(!run)('Phase10 HTTP E2E + hardening + restore drill', () => {
     process.env.BACKUP_DIR = mkdtempSync(join(tmpdir(), 'erp-drill-'));
     process.env.BACKUP_ENCRYPTION_KEY = 'ci-backup-key-at-least-32-characters-long';
     const mod = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = mod.createNestApplication(); app.setGlobalPrefix('api/v1'); app.use(cookieParser()); await app.listen(0);
+    app = mod.createNestApplication(); app.setGlobalPrefix('api/v1'); app.use(cookieParser());
+    const { ArgumentsHost, Catch, ExceptionFilter, HttpException } = await import('@nestjs/common');
+    @Catch() class DebugFilter implements ExceptionFilter { catch(e: any, host: ArgumentsHost) { const res = host.switchToHttp().getResponse(); res.status(e instanceof HttpException ? e.getStatus() : 500).json({ debug: String(e?.stack ?? e).slice(0, 800) }); } }
+    app.useGlobalFilters(new DebugFilter());
+    await app.listen(0);
     const addr = app.getHttpServer().address(); base = `http://127.0.0.1:${addr.port}`;
     const { PrismaService } = await import('../src/prisma/prisma.service');
     const { AuditService } = await import('../src/audit/audit.service');
