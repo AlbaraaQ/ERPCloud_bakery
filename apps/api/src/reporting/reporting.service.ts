@@ -28,8 +28,11 @@ export class ReportingService {
     const rows = await this.acc.trialBalance(tenantId, asOf);
     const sum = (types: string[]) => rows.filter((r: any) => types.includes(r.type)).reduce((a: any, r: any) => a.plus(money(r.balance)), money(0));
     const assets = sum(['asset']); const liabilities = sum(['liability']); const equity = sum(['equity']);
-    // liability/equity balances are credit (negative debit-balance) in trial balance terms
-    return { asOf, assets: assets.toString(), liabilities: liabilities.abs().toString(), equity: equity.abs().toString(), balanced: assets.plus(liabilities).plus(equity).abs().lt('0.01'), accounts: rows };
+    // Current-period profit belongs to equity until closing: revenue balances are credit
+    // (negative), expenses debit (positive) in trial-balance signed terms.
+    const profit = sum(['revenue', 'expense']).neg();
+    const liabilitiesDisplay = liabilities.abs(); const equityDisplay = equity.abs().plus(profit);
+    return { asOf, assets: assets.toString(), liabilities: liabilitiesDisplay.toString(), equity: equityDisplay.toString(), currentPeriodProfit: profit.toString(), balanced: assets.minus(liabilitiesDisplay).minus(equityDisplay).abs().lt('0.01'), accounts: rows };
   }
 
   async generalLedger(tenantId: string, accountCode: string, from: string, to: string) {
