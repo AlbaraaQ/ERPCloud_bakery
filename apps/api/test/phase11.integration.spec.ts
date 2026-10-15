@@ -60,8 +60,10 @@ describe.skipIf(!run)('Phase11 master-data setup path -> real sale (real Postgre
     expect(sale.total.toString()).toBe('115');
     expect((await master.listInvoices(T)).length).toBe(1);
     expect((await master.listStockBalances(T))[0].qty.toString()).toBe('90');
-    const tb = await acc.trialBalance(T, '2026-10-31');
-    const diff = (tb as any).difference ?? (tb as any).totalDebit - (tb as any).totalCredit;
-    expect(Number(diff)).toBe(0);
+    const tb = (await acc.trialBalance(T, '2026-10-31')) as any[];
+    const totalD = tb.reduce((a, r) => a + Number(r.debit), 0);
+    const totalC = tb.reduce((a, r) => a + Number(r.credit), 0);
+    expect(totalD).toBeGreaterThan(0);
+    expect(totalD - totalC).toBe(0);
   });
 });
