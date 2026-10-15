@@ -183,3 +183,18 @@ No commits/pushes (per brief §18, not separately requested).
 - Remaining before production (unchanged, explicit): close Q-001..Q-018 with owners/legal,
   real ZATCA sandbox onboarding, Drive OAuth credentials, pg_dump/object-storage backups,
   Playwright/browser + device PWA QA, load testing, eslint adoption.
+
+## Production delivery packaging (2026-10-15, post-Phase 10)
+- Added `docker-compose.prod.yml`: db (not published) + one-shot `migrate` service
+  (prisma migrate deploy -> app-role.sql with the app password substituted -> optional
+  seed) + api running as non-owner `erp_app` with healthcheck + web via nginx.
+- Added `apps/web/nginx.conf`: same-origin `/api/` proxy to api:3001, SPA fallback,
+  immutable asset caching, security headers; web Dockerfile now installs it.
+- Added `.env.production.example` (every variable documented, secrets via openssl),
+  `.dockerignore`, root `README.md` quick-start, and the full Arabic operations guide
+  `docs/DEPLOYMENT_GUIDE_AR.md` (requirements, first boot + seed, smoke tests, HTTPS,
+  backups/restore drills, update/rollback, troubleshooting, pre-launch gates).
+- CI now also validates the production compose file and builds both production images.
+- NOT verified locally: no Docker engine in this sandbox, so the compose stack itself
+  is verified by the new CI docker-build step on this commit, not by a local boot.
+  Production launch gates in docs/RELEASE_READINESS.md are unchanged.

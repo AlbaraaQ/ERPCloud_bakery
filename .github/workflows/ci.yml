@@ -30,6 +30,13 @@ jobs:
         working-directory: apps/api
         run: npx prisma db execute --file prisma/app-role.sql
       - run: npm run build
+      - name: production docker images build + compose validation
+        run: |
+          cp .env.production.example .env.production
+          sed -i 's/CHANGE_ME[A-Z_]*/ci-placeholder-value-32-chars-minimum/g' .env.production
+          docker compose -f docker-compose.prod.yml --env-file .env.production config -q
+          docker build -f apps/api/Dockerfile -t erpcloud-api:ci .
+          docker build -f apps/web/Dockerfile -t erpcloud-web:ci .
       - name: integration tests (real Postgres, as erp_app)
         env: { RUN_INTEGRATION: '1', DATABASE_URL: 'postgresql://erp_app:CHANGE_ME@localhost:5432/erpcloud_test?schema=public' }
         working-directory: apps/api

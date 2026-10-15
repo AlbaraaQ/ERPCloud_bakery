@@ -5,5 +5,6 @@ COPY apps/web ./apps/web
 COPY packages ./packages
 RUN npm ci --ignore-scripts && npm run build -w @erpcloud/web
 FROM nginx:alpine
+COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /repo/apps/web/dist /usr/share/nginx/html
 EXPOSE 80

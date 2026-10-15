@@ -1,0 +1,84 @@
+# ============================================================
+# ERPCloud — Production stack (single-host Docker deployment)
+# Usage:  cp .env.production.example .env.production  (fill it in!)
+#         docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+# Full Arabic guide: docs/DEPLOYMENT_GUIDE_AR.md
+# For larger deployments use a managed PostgreSQL and the same images.
+# ============================================================
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env.production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
+      POSTGRES_DB: ${POSTGRES_DB:-erpcloud}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-erp_owner} -d ${POSTGRES_DB:-erpcloud}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # Database is NOT published to the host by default. Uncomment only behind a firewall.
+    # ports: ["127.0.0.1:5432:5432"]
+
+  migrate:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    restart: "no"
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      # Owner connection: migrations + role creation + optional seed
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-erpcloud}?schema=public
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?set APP_DB_PASSWORD in .env.production}
+      RUN_SEED: ${RUN_SEED:-false}
+      SEED_OWNER_EMAIL: ${SEED_OWNER_EMAIL:-owner@example.com}
+      SEED_OWNER_PASSWORD: ${SEED_OWNER_PASSWORD:-}
+    command: >
+      sh -c "cd apps/api &&
+      npx prisma migrate deploy &&
+      sed \"s/CHANGE_ME/$$APP_DB_PASSWORD/\" prisma/app-role.sql > /tmp/app-role.sql &&
+      npx prisma db execute --file /tmp/app-role.sql &&
+      if [ \"$$RUN_SEED\" = \"true\" ]; then npm run seed; fi &&
+      echo 'MIGRATIONS + APP ROLE OK'"
+
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      # Application connects as the NON-OWNER role so PostgreSQL RLS applies
+      DATABASE_URL: postgresql://${APP_DB_USER:-erp_app}:${APP_DB_PASSWORD}@db:5432/${POSTGRES_DB:-erpcloud}?schema=public
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env.production}
+      WEB_ORIGIN: ${WEB_ORIGIN:?set WEB_ORIGIN in .env.production}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?set BACKUP_ENCRYPTION_KEY in .env.production}
+      BACKUP_DIR: ${BACKUP_DIR:-/var/backups/erpcloud}
+      ZATCA_BASE_URL: ${ZATCA_BASE_URL:-}
+      ZATCA_CLEARANCE_PATH: ${ZATCA_CLEARANCE_PATH:-}
+      ZATCA_REPORTING_PATH: ${ZATCA_REPORTING_PATH:-}
+      GOOGLE_DRIVE_FOLDER_ID: ${GOOGLE_DRIVE_FOLDER_ID:-}
+      GOOGLE_DRIVE_TOKEN_SECRET_REF: ${GOOGLE_DRIVE_TOKEN_SECRET_REF:-}
+    volumes:
+      - backups:/var/backups/erpcloud
+    ports:
+      - "${API_PORT:-3001}:3001"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3001/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  pgdata:
+  backups:
