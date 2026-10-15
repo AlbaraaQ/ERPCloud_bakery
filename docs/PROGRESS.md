@@ -3,7 +3,7 @@
 _Last updated: 2026-10-14 (Phase 1 session). Update this file at the end of every session._
 
 ## Current state
-- **Phase:** 1–6 **COMPLETE (sandbox-boundary level for 6)** (latest CI green run 38657983733). Remaining: 7 (reporting), 8 (platform/backups), 9 (AI), 10 (hardening/release).
+- **Phase:** 1–7 **COMPLETE** (6 at sandbox-boundary level) (latest CI green run 38659214834). Remaining: 8 (platform/backups), 9 (AI), 10 (hardening/release).
 - **Phase 0:** complete (docs package, owner said "ابدأ العمل" 2026-10-14 lifting the doc gate)
 
 ## Completed — Phase 1 (evidence-based)
@@ -131,3 +131,13 @@ No commits/pushes (per brief §18, not separately requested).
 - NOT DONE / NOT CLAIMED: real ZATCA sandbox onboarding (CSR/CSID), official-spec XML
   profile validation, production credentials, legal sign-off. Q-001/Q-002/Q-003 remain open
   and production tax submission must stay disabled until they are resolved.
+
+## Phase 7 completion evidence (2026-10-15)
+- CI run 38659214834 SUCCESS incl. AT-RPT-001 on real Postgres: income statement revenue 300 /
+  COGS 120 / profit 180; balance sheet balances (after including current-period profit in
+  equity — a bug the tests caught and fixed); AR aging current bucket 230, AP d30 bucket 460;
+  reconciliations endpoint: trial-balance difference 0, stock drift rows 0, inventory
+  valuation 280 == GL inventory account; sales-by-product gross profit 180; ledger drill-down.
+- Reports read posted journals + movement ledger only; CSV export behind reports.export.
+- Carried gaps: PDF/print rendering polish is Phase 10; route/visit and commission reports
+  depend on Q-009/Q-012; cash-flow classification mapping is direct-method v1 (Q-011 open).
