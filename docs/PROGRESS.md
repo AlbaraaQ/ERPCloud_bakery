@@ -3,7 +3,7 @@
 _Last updated: 2026-10-14 (Phase 1 session). Update this file at the end of every session._
 
 ## Current state
-- **Phase:** 1–7 **COMPLETE** (6 at sandbox-boundary level) (latest CI green run 38659214834). Remaining: 8 (platform/backups), 9 (AI), 10 (hardening/release).
+- **Phase:** 1–8 **COMPLETE** (6 at sandbox-boundary level) (latest CI green run 38660019337). Remaining: 9 (AI), 10 (hardening/release).
 - **Phase 0:** complete (docs package, owner said "ابدأ العمل" 2026-10-14 lifting the doc gate)
 
 ## Completed — Phase 1 (evidence-based)
@@ -141,3 +141,20 @@ No commits/pushes (per brief §18, not separately requested).
 - Reports read posted journals + movement ledger only; CSV export behind reports.export.
 - Carried gaps: PDF/print rendering polish is Phase 10; route/visit and commission reports
   depend on Q-009/Q-012; cash-flow classification mapping is direct-method v1 (Q-011 open).
+
+## Phase 8 completion evidence (2026-10-15)
+- CI run 38660019337 SUCCESS incl. Phase-8 integration: platform login separate from tenant
+  auth; tenant provisioning with plan; suspension blocks tenant login while preserving data;
+  support access rejected without tenant consent and granted (scoped/expiring/audited) with it;
+  plan quota maxRepresentatives=1 enforced on the second representative; encrypted backup
+  created -> status verified only after write/hash/decrypt verification, SHA-256 recorded;
+  corrupted artifact copy fails verification; unconfigured Google Drive fails explicitly
+  (no fake success); retention keeps <= 18 verified.
+- Real bug caught & fixed by the tests: backup reads initially ran without RLS context
+  (empty dump) and tenant export could have included all tenants — now platform-context
+  reads with strict single-tenant filtering.
+- Carried gaps: production backup should use pg_dump + object storage at deployment
+  (logical encrypted export is the implemented, tested mechanism; BACKUP_AND_RECOVERY
+  documents the distinction); Google Drive OAuth linking requires deployment credentials;
+  automated 4h scheduling hook = jobs worker in Phase 10 ops scope; restore is a verified
+  artifact + documented drill procedure, not an in-app one-click restore (by design).
