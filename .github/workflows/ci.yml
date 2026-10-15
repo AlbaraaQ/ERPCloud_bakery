@@ -39,7 +39,17 @@ jobs:
           docker build -f apps/web/Dockerfile -t erpcloud-web:ci .
       - name: production stack smoke test (real boot — migrate, API, web, login)
         run: |
-          {
+          set +e
+          DC="docker compose -f docker-compose.prod.yml --env-file .env.production"
+          fail() {
+            echo "SMOKE FAILED: $1"
+            $DC ps
+            echo "--- migrate logs ---"; $DC logs migrate | tail -30
+            echo "--- api logs ---"; $DC logs api | tail -30
+            echo "::error title=prod-smoke::$1 :: $( ($DC logs migrate api 2>/dev/null | grep -iE 'error|fail|fatal|panic|exception' | tail -c 1800 | tr '\n' '|') )"
+            $DC down -v
+            exit 1
+          }
           cat > .env.production <<'EOF'
           POSTGRES_USER=erp_owner
           POSTGRES_PASSWORD=ci-owner-password-123
@@ -55,33 +65,24 @@ jobs:
           SEED_OWNER_EMAIL=owner@ci.example
           SEED_OWNER_PASSWORD=Ci-Strong-Pass-123!
           EOF
-          cleanup() { docker compose -f docker-compose.prod.yml --env-file .env.production down -v || true; }
-          trap cleanup EXIT
-          docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
-          echo "--- waiting for migrate to complete ---"
+          $DC up -d --build || fail "compose up failed"
+          mig=""
           for i in $(seq 1 40); do
-            if docker compose -f docker-compose.prod.yml --env-file .env.production logs migrate | grep -q "MIGRATIONS + APP ROLE OK"; then break; fi
+            $DC logs migrate | grep -q "MIGRATIONS + APP ROLE OK" && { mig=1; break; }
             sleep 3
           done
-          docker compose -f docker-compose.prod.yml --env-file .env.production logs migrate | tail -20
-          docker compose -f docker-compose.prod.yml --env-file .env.production logs migrate | grep -q "MIGRATIONS + APP ROLE OK"
-          echo "--- waiting for API health ---"
+          [ -n "$mig" ] || fail "migrate did not complete OK"
           ok=""
           for i in $(seq 1 40); do
-            if curl -sf http://localhost:3001/api/v1/health; then ok=1; break; fi
+            curl -sf http://localhost:3001/api/v1/health && { ok=1; break; }
             sleep 3
           done
-          [ -n "$ok" ] || { docker compose -f docker-compose.prod.yml --env-file .env.production logs api | tail -40; exit 1; }
-          echo "--- web serves ---"
-          curl -sf http://localhost:8080/ | grep -qi "root"
-          echo "--- login as seeded owner + dashboard ---"
-          curl -sf -c /tmp/cookies.txt -X POST http://localhost:3001/api/v1/auth/login -H 'content-type: application/json' -d '{"tenantSlug":"demo","email":"owner@ci.example","password":"Ci-Strong-Pass-123!"}' | head -c 300; echo
-          curl -sf -b /tmp/cookies.txt -X POST http://localhost:3001/api/v1/reports/dashboard -H 'content-type: application/json' -d '{}' | head -c 300; echo
+          [ -n "$ok" ] || fail "API health never came up"
+          curl -sf http://localhost:8080/ | grep -qi "root" || fail "web did not serve"
+          curl -sf -c /tmp/cookies.txt -X POST http://localhost:3001/api/v1/auth/login -H 'content-type: application/json' -d '{"tenantSlug":"demo","email":"owner@ci.example","password":"Ci-Strong-Pass-123!"}' || fail "seeded owner login failed"
+          curl -sf -b /tmp/cookies.txt -X POST http://localhost:3001/api/v1/reports/dashboard -H 'content-type: application/json' -d '{}' || fail "dashboard failed"
           echo "PROD STACK SMOKE OK"
-          } > /tmp/smoke.log 2>&1; code=$?
-          tail -30 /tmp/smoke.log
-          if [ $code -ne 0 ]; then echo "::error title=prod-smoke::$(grep -iE 'error|fail|fatal|panic|didn.t|exit' /tmp/smoke.log | tail -c 2400 | tr '\n' '|')"; fi
-          exit $code
+          $DC down -v
       - name: integration tests (real Postgres, as erp_app)
         env: { RUN_INTEGRATION: '1', DATABASE_URL: 'postgresql://erp_app:CHANGE_ME@localhost:5432/erpcloud_test?schema=public' }
         working-directory: apps/api
