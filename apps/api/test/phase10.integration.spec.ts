@@ -16,6 +16,7 @@ describe.skipIf(!run)('Phase10 HTTP E2E + hardening + restore drill', () => {
     process.env.BACKUP_ENCRYPTION_KEY = 'ci-backup-key-at-least-32-characters-long';
     // Import the COMPILED module: tsc emits design:paramtypes that Nest DI needs;
     // vitest/esbuild transpilation of src does not (CI builds before integration runs).
+    // @ts-ignore dist is built before integration runs
     const { AppModule } = await import('../../dist/app.module');
     const mod = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = mod.createNestApplication(); app.setGlobalPrefix('api/v1'); app.use(cookieParser());
@@ -23,8 +24,11 @@ describe.skipIf(!run)('Phase10 HTTP E2E + hardening + restore drill', () => {
     app.useGlobalFilters(new DebugFilter());
     await app.listen(0);
     const addr = app.getHttpServer().address(); base = `http://127.0.0.1:${addr.port}`;
+    // @ts-ignore dist built before integration
     const { PrismaService } = await import('../../dist/prisma/prisma.service');
+    // @ts-ignore dist built before integration
     const { AuditService } = await import('../../dist/audit/audit.service');
+    // @ts-ignore dist built before integration
     const { AuthService } = await import('../../dist/auth/auth.service');
     const prisma = new PrismaService();
     const auth = new AuthService(prisma, new AuditService(prisma));
@@ -63,7 +67,9 @@ describe.skipIf(!run)('Phase10 HTTP E2E + hardening + restore drill', () => {
   });
 
   it('backup restore drill: artifact decrypts and row counts match the live tenant', async () => {
+    // @ts-ignore dist built before integration
     const { PrismaService } = await import('../../dist/prisma/prisma.service');
+    // @ts-ignore dist built before integration
     const { BackupService, HttpDriveGateway } = await import('../../dist/platform/backup.service');
     const prisma = new PrismaService();
     const backups = new BackupService(prisma, new HttpDriveGateway());
