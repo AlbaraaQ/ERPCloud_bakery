@@ -198,3 +198,16 @@ No commits/pushes (per brief §18, not separately requested).
 - NOT verified locally: no Docker engine in this sandbox, so the compose stack itself
   is verified by the new CI docker-build step on this commit, not by a local boot.
   Production launch gates in docs/RELEASE_READINESS.md are unchanged.
+
+## Production migrate failure — root-cause fix (2026-10-15)
+- User-reported: prod `migrate` container exited non-zero; local Windows Prisma failed
+  with P1012 (DATABASE_URL not found). Diagnosis: CI only *built* the images and never
+  *booted* the stack, so runtime faults were uncaught. Likely compounding causes: fragile
+  inline compose shell (quoting / `$$` expansion around app-role.sql) and Prisma-on-Alpine
+  runtime needing OpenSSL/glibc-compat.
+- Fixes: checked-in `apps/api/scripts/migrate-prod.sh` (validates env, migrate deploy,
+  node-based password substitution safe for any characters, optional seed; compose now
+  calls it directly), runtime image installs `openssl libc6-compat`, `apps/api/.env.example`
+  added + guide updated for the P1012 Windows case, and CI gained a REAL production-stack
+  smoke test (compose up -> migrate OK marker -> /health -> web -> seeded-owner login ->
+  dashboard) so a broken boot now fails CI before delivery.

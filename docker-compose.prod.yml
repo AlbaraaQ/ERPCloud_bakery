@@ -34,13 +34,7 @@ services:
       RUN_SEED: ${RUN_SEED:-false}
       SEED_OWNER_EMAIL: ${SEED_OWNER_EMAIL:-owner@example.com}
       SEED_OWNER_PASSWORD: ${SEED_OWNER_PASSWORD:-}
-    command: >
-      sh -c "cd apps/api &&
-      npx prisma migrate deploy &&
-      sed \"s/CHANGE_ME/$$APP_DB_PASSWORD/\" prisma/app-role.sql > /tmp/app-role.sql &&
-      npx prisma db execute --file /tmp/app-role.sql &&
-      if [ \"$$RUN_SEED\" = \"true\" ]; then npm run seed; fi &&
-      echo 'MIGRATIONS + APP ROLE OK'"
+    command: ["sh", "apps/api/scripts/migrate-prod.sh"]
 
   api:
     build: { context: ., dockerfile: apps/api/Dockerfile }
