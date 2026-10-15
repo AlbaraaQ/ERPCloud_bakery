@@ -12,10 +12,10 @@ import { TaxService } from '../src/tax/tax.service';
 const run = process.env.RUN_INTEGRATION === '1';
 // Test double at the documented gateway boundary: behaves like a sandbox response, records calls.
 class FakeGateway {
-  calls: any[] = []; mode: 'ok' | 'fail-once' | 'reject' = 'ok';
+  calls: any[] = []; mode: 'ok' | 'fail-once' | 'reject' = 'ok'; failures = 0;
   async submit(input: any) {
     this.calls.push(input);
-    if (this.mode === 'fail-once' && this.calls.length === 1) throw new Error('network timeout (simulated)');
+    if (this.failures > 0) { this.failures--; throw new Error('network timeout (simulated)'); }
     if (this.mode === 'reject') return { accepted: false, status: 'rejected' as const, responseCode: '400', reference: 'validation error (simulated)' };
     return { accepted: true, status: input.kind.startsWith('standard') ? 'cleared' as const : 'reported' as const, reference: 'SANDBOX-REF-1', responseCode: '200' };
   }
@@ -67,7 +67,7 @@ describe.skipIf(!run)('Phase6 tax/ZATCA boundary (fake sandbox gateway)', () => 
   });
 
   it('network failure keeps pending status, retry reuses same UUID/hash and succeeds (AT-TAX-002)', async () => {
-    gateway.mode = 'fail-once';
+    gateway.failures = 1;
     const sale = await sales.createInvoice(T, { partyId: b2b, warehouseId: WH, businessDate: '2026-10-10', idempotencyKey: 'p6-sale-2', lines: [{ productId: P, qty: '1' }], payments: [{ method: 'cash', amount: '11.5' }] }, { post: true });
     const first = await tax.submitInvoice(T, sale.id);
     expect(first.status).toBe('failed'); expect(first.kind).toBe('standard');
