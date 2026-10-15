@@ -35,7 +35,7 @@ describe.skipIf(!run)('Phase10 HTTP E2E + hardening + restore drill', () => {
 
   it('health is public; protected routes reject anonymous (401)', async () => {
     const h = await fetch(base + '/api/v1/health'); if (h.status !== 200) throw new Error('HEALTH_BODY:' + (await h.text()).slice(0, 400));
-    expect((await post('/api/v1/reports/dashboard')).status).toBe(401);
+    const anon = await post('/api/v1/reports/dashboard'); if (anon.status !== 401) throw new Error('ANON_BODY:' + (await anon.text()).slice(0, 400));
   });
 
   it('login over HTTP sets httpOnly cookies and never returns tokens in body', async () => {
