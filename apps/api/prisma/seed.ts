@@ -10,7 +10,9 @@ async function main() {
     await tx.$executeRaw`SELECT set_config('app.platform_access','on',true)`;
     const tenant = await tx.tenant.create({ data: { name: 'شركة تجريبية', slug: 'demo' } });
     await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenant.id}, true)`;
-    for (const p of PERMISSIONS) await tx.permission.upsert({ where:{code:p}, create:{code:p}, update:{} });
+    // Global permission catalogue: insert-if-absent (upsert raised P2002 on code
+    // under concurrent/first-boot conditions; skipDuplicates is the correct seed semantic)
+    await tx.permission.createMany({ data: PERMISSIONS.map((code: string) => ({ code })), skipDuplicates: true });
     const owner = await tx.user.create({ data: { tenantId: tenant.id, email, passwordHash: await argon2.hash(password,{type:argon2.argon2id}), displayName: 'مالك الشركة' } });
     for (const [code, perms] of Object.entries(ROLE_PERMISSIONS)) {
       const role = await tx.role.create({ data: { tenantId: tenant.id, code, name: code } });
