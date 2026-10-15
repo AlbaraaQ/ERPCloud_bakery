@@ -21,12 +21,12 @@ export class ReportingService {
       }
       return { revenue, expenses, byAccount };
     });
-    return { from, to, revenue: tb.revenue.toString(), expenses: tb.expenses.toString(), netProfit: tb.revenue.minus(tb.expenses).toString(), byAccount: Object.entries(tb.byAccount).map(([code, v]) => ({ code, ...v, amount: v.amount.toString() })) };
+    return { from, to, revenue: tb.revenue.toString(), expenses: tb.expenses.toString(), netProfit: tb.revenue.minus(tb.expenses).toString(), byAccount: Object.entries(tb.byAccount).map(([code, v]: [string, any]) => ({ code, name: v.name, type: v.type, amount: v.amount.toString() })) };
   }
 
   async balanceSheet(tenantId: string, asOf: string) {
     const rows = await this.acc.trialBalance(tenantId, asOf);
-    const sum = (types: string[]) => rows.filter(r => types.includes(r.type)).reduce((a, r) => a.plus(money(r.balance)), money(0));
+    const sum = (types: string[]) => rows.filter((r: any) => types.includes(r.type)).reduce((a: any, r: any) => a.plus(money(r.balance)), money(0));
     const assets = sum(['asset']); const liabilities = sum(['liability']); const equity = sum(['equity']);
     // liability/equity balances are credit (negative debit-balance) in trial balance terms
     return { asOf, assets: assets.toString(), liabilities: liabilities.abs().toString(), equity: equity.abs().toString(), balanced: assets.plus(liabilities).plus(equity).abs().lt('0.01'), accounts: rows };
@@ -99,7 +99,7 @@ export class ReportingService {
   /** Automated reconciliation checks — every difference must be zero (REPORTING_SPECIFICATION). */
   async reconciliations(tenantId: string, asOf: string) {
     const tb = await this.acc.trialBalance(tenantId, asOf);
-    const debit = tb.reduce((a, r) => a.plus(money(r.debit)), money(0)); const credit = tb.reduce((a, r) => a.plus(money(r.credit)), money(0));
+    const debit = tb.reduce((a: any, r: any) => a.plus(money(r.debit)), money(0)); const credit = tb.reduce((a: any, r: any) => a.plus(money(r.credit)), money(0));
     const valuation = await this.inventoryValuation(tenantId);
     const drift = await this.inv.reconcile(tenantId);
     const glInventory = await this.prisma.withTenant(tenantId, async (tx: any) => {
