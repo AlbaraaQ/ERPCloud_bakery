@@ -34,7 +34,9 @@ services:
       RUN_SEED: ${RUN_SEED:-false}
       SEED_OWNER_EMAIL: ${SEED_OWNER_EMAIL:-owner@example.com}
       SEED_OWNER_PASSWORD: ${SEED_OWNER_PASSWORD:-}
-    command: ["sh", "apps/api/scripts/migrate-prod.sh"]
+    # Belt-and-braces: strip any CRLF a Windows checkout may have introduced
+    # into the script before executing it, then run it.
+    command: ["sh", "-c", "sed -i 's/\\r$//' apps/api/scripts/migrate-prod.sh; sh apps/api/scripts/migrate-prod.sh"]
 
   api:
     build: { context: ., dockerfile: apps/api/Dockerfile }

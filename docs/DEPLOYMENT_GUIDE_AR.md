@@ -188,7 +188,8 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d   # m
 | العَرَض | السبب المحتمل | الحل |
 |---|---|---|
 | `migrate` يفشل أو يكرر | متغيرات DB مفقودة في `.env.production` | أعد إنشاء الملف من `.env.production.example` ومرّر `--env-file .env.production` دائمًا، ثم انظر `docker compose -f docker-compose.prod.yml --env-file .env.production logs migrate` |
-| `service "migrate" didn't complete successfully` | الهجرات أو إنشاء الدور فشل داخل الحاوية (الإصلاح الحالي: سكربت `apps/api/scripts/migrate-prod.sh` + حزم openssl في الصورة) | حدّث الكود لآخر commit، ثم `docker compose -f docker-compose.prod.yml --env-file .env.production down -v` وأعد البناء `--build` |
+| `service "migrate" didn't complete successfully` خلال ثوانٍ قليلة | غالبًا صورة قديمة لم تُبنَ من جديد، أو نهايات أسطر CRLF من نسخ Windows أفسدت سكربت التشغيل (عولج بـ `.gitattributes` + تنظيف CRLF داخل أمر التشغيل) | نفّذ بالترتيب: `git pull` ثم `docker compose -f docker-compose.prod.yml --env-file .env.production down -v` ثم `up -d --build` — أو ببساطة شغّل `.\run-production.ps1` من PowerShell |
+| ما زال نفس الخطأ بعد كل ذلك | سبب آخر داخل الهجرات نفسها | أرسل ناتج هذا الأمر كاملًا (فيه السبب الدقيق سطرًا بسطر): `docker compose -f docker-compose.prod.yml --env-file .env.production logs migrate` |
 | `P1012: Environment variable not found: DATABASE_URL` عند تشغيل Prisma محليًا (Windows مثلًا) | لا يوجد ملف `apps/api/.env` — Prisma لا يقرأ `.env` الجذري تلقائيًا من هذا الموضع | `cd apps/api` ثم `cp .env.example .env` (في Windows: `copy .env.example .env`) وعدّل `DATABASE_URL` ثم أعد الأمر |
 | API يعيد 500 بعد الدخول | التطبيق اتصل كمالك DB فتُجاوز RLS أو العكس | تأكد أن `DATABASE_URL` للـ API يستخدم `erp_app` وليس مالك القاعدة |
 | تسجيل الدخول 401 دائمًا | `SESSION_SECRET` تغيّر أو كوكيز عبر نطاق مختلف | ثبّت السر، واستخدم HTTPS بنفس النطاق، وتحقق من `WEB_ORIGIN` |
