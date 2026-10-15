@@ -39,6 +39,8 @@ jobs:
           docker build -f apps/web/Dockerfile -t erpcloud-web:ci .
       - name: production stack smoke test (real boot — migrate, API, web, login)
         run: |
+          set +e
+          {
           cat > .env.production <<'EOF'
           POSTGRES_USER=erp_owner
           POSTGRES_PASSWORD=ci-owner-password-123
@@ -77,6 +79,10 @@ jobs:
           curl -sf -c /tmp/cookies.txt -X POST http://localhost:3001/api/v1/auth/login -H 'content-type: application/json' -d '{"tenantSlug":"demo","email":"owner@ci.example","password":"Ci-Strong-Pass-123!"}' | head -c 300; echo
           curl -sf -b /tmp/cookies.txt -X POST http://localhost:3001/api/v1/reports/dashboard -H 'content-type: application/json' -d '{}' | head -c 300; echo
           echo "PROD STACK SMOKE OK"
+          } > /tmp/smoke.log 2>&1; code=$?
+          tail -30 /tmp/smoke.log
+          if [ $code -ne 0 ]; then echo "::error title=prod-smoke::$(grep -iE 'error|fail|fatal|panic|didn.t|exit' /tmp/smoke.log | tail -c 2400 | tr '\n' '|')"; fi
+          exit $code
       - name: integration tests (real Postgres, as erp_app)
         env: { RUN_INTEGRATION: '1', DATABASE_URL: 'postgresql://erp_app:CHANGE_ME@localhost:5432/erpcloud_test?schema=public' }
         working-directory: apps/api
