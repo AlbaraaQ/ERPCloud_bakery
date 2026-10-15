@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { hashPassword, verifyPassword, newToken, hashToken } from './password';
+import { passwordPolicy } from '../security/security';
 
 @Injectable()
 export class AuthService {
@@ -9,6 +10,7 @@ export class AuthService {
 
   /** Creates a tenant with its owner user + seeded roles/permissions (provisioning used by platform in Phase 8; exposed for seed/tests). */
   async createTenantWithOwner(input: { tenantName: string; slug: string; email: string; password: string; displayName: string }) {
+    const policyError = passwordPolicy(input.password); if (policyError) throw new Error(policyError);
     const db = this.prisma.client;
     const { PERMISSIONS, ROLE_PERMISSIONS } = await import('@erpcloud/shared');
     return this.prisma.withPlatform(async (tx: any) => {
@@ -51,6 +53,21 @@ export class AuthService {
     if (!user || user.status !== 'active') throw new UnauthorizedException('انتهت الجلسة');
     const permissions = [...new Set(user.roles.flatMap((ur: any) => ur.role.permissions.map((rp: any) => rp.permission.code)))];
     return { tenantId: s.tenantId as string, userId: user.id as string, permissions: permissions as string[] };
+  }
+
+  /** Refresh rotation: the old session is revoked and a brand-new token pair is issued.
+   *  Presenting an already-rotated refresh token revokes nothing new but is rejected. */
+  async refresh(refreshToken: string) {
+    const db = this.prisma.client;
+    const s = await this.prisma.withPlatform((tx: any) => tx.session.findUnique({ where: { refreshHash: hashToken(refreshToken) } }));
+    if (!s || s.revokedAt || s.expiresAt < new Date()) throw new UnauthorizedException('انتهت الجلسة — سجّل الدخول مجدداً');
+    const access = newToken(), refresh = newToken();
+    await this.prisma.withTenant(s.tenantId, async (tx: any) => {
+      await tx.session.update({ where: { id: s.id }, data: { revokedAt: new Date() } });
+      await tx.session.create({ data: { tenantId: s.tenantId, userId: s.userId, tokenHash: hashToken(access), refreshHash: hashToken(refresh), expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7) } });
+      await tx.auditLog.create({ data: { tenantId: s.tenantId, actorUserId: s.userId, action: 'auth.refresh_rotated', entityType: 'session', entityId: s.id } });
+    });
+    return { accessToken: access, refreshToken: refresh };
   }
 
   async logout(accessToken: string) {
