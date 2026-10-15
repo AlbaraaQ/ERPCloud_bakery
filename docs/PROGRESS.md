@@ -3,7 +3,7 @@
 _Last updated: 2026-10-14 (Phase 1 session). Update this file at the end of every session._
 
 ## Current state
-- **Phase:** 1–5 **COMPLETE** (latest CI green run 38656704921). Remaining: 6 (ZATCA), 7 (reporting), 8 (platform/backups), 9 (AI), 10 (hardening/release).
+- **Phase:** 1–6 **COMPLETE (sandbox-boundary level for 6)** (latest CI green run 38657983733). Remaining: 7 (reporting), 8 (platform/backups), 9 (AI), 10 (hardening/release).
 - **Phase 0:** complete (docs package, owner said "ابدأ العمل" 2026-10-14 lifting the doc gate)
 
 ## Completed — Phase 1 (evidence-based)
@@ -118,3 +118,16 @@ No commits/pushes (per brief §18, not separately requested).
 - All 6 migrations also applied cleanly on embedded Postgres (59 tables).
 - Carried gaps: FIFO costing still not implemented (D-008/Q-007 open); WIP is direct
   completion costing (no multi-stage WIP ledger); production UI screens are Phase 10 UX scope.
+
+## Phase 6 completion evidence (2026-10-15) — with honesty limits
+- CI run 38657983733 SUCCESS incl. Phase-6 integration with a FAKE gateway at the documented
+  boundary (no real ZATCA sandbox credentials exist in this project yet):
+  simplified invoice reported with TLV QR + ICV 1, resubmit returns same submission with
+  gateway called once (no duplicate issuance); standard invoice: simulated network failure
+  -> status failed + invoice stays pending_clearance (never falsely cleared), retry reuses
+  SAME uuid/hash/icv -> cleared; simulated official rejection -> rejected; tax period
+  summary by rate reconciles (15% tax = 6 on the test data).
+- All 7 migrations apply on embedded Postgres (62 tables).
+- NOT DONE / NOT CLAIMED: real ZATCA sandbox onboarding (CSR/CSID), official-spec XML
+  profile validation, production credentials, legal sign-off. Q-001/Q-002/Q-003 remain open
+  and production tax submission must stay disabled until they are resolved.
