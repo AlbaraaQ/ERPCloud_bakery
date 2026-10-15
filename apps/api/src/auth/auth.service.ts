@@ -16,7 +16,8 @@ export class AuthService {
     return this.prisma.withPlatform(async (tx: any) => {
       const tenant = await tx.tenant.create({ data: { name: input.tenantName, slug: input.slug } });
       await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenant.id}, true)`;
-      for (const p of PERMISSIONS) await tx.permission.upsert({ where: { code: p }, create: { code: p }, update: {} });
+      // insert-if-absent: parallel tenant provisioning raced on upsert (P2002 on code)
+      await tx.permission.createMany({ data: (PERMISSIONS as readonly string[]).map((code) => ({ code })), skipDuplicates: true });
       const owner = await tx.user.create({ data: { tenantId: tenant.id, email: input.email.toLowerCase(), passwordHash: await hashPassword(input.password), displayName: input.displayName } });
       for (const [code, perms] of Object.entries(ROLE_PERMISSIONS)) {
         const role = await tx.role.create({ data: { tenantId: tenant.id, code, name: code } });
