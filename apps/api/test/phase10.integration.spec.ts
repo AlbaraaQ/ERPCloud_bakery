@@ -31,7 +31,7 @@ describe.skipIf(!run)('Phase10 HTTP E2E + hardening + restore drill', () => {
   const post = async (path: string, body?: unknown, ck?: string) => fetch(base + path, { method: 'POST', headers: { 'content-type': 'application/json', ...(ck ? { cookie: ck } : {}) }, body: body ? JSON.stringify(body) : undefined });
 
   it('health is public; protected routes reject anonymous (401)', async () => {
-    const h = await fetch(base + '/api/v1/health'); expect(h.status, await h.text().then(t=>t.slice(0,300))).toBe(200);
+    const h = await fetch(base + '/api/v1/health'); if (h.status !== 200) throw new Error('HEALTH_BODY:' + (await h.text()).slice(0, 400));
     expect((await post('/api/v1/reports/dashboard')).status).toBe(401);
   });
 
