@@ -1,9 +1,9 @@
 # Progress
 
-_Last updated: 2026-10-14 (Phase 1 session). Update this file at the end of every session._
+_Last updated: 2026-10-15 (Phase 10 session). Update this file at the end of every session._
 
 ## Current state
-- **Phase:** 1–9 **COMPLETE** (6 at sandbox-boundary level) (latest CI green run 38660937722). Remaining: 10 (hardening/release) only.
+- **Phase:** ALL PHASES 0–10 IMPLEMENTED. Latest CI green run 38664244473. Production launch NOT yet recommended — see docs/RELEASE_READINESS.md for the unverified list (real ZATCA sandbox/legal, Drive OAuth, pg_dump production backups, browser E2E, load profile, eslint).
 - **Phase 0:** complete (docs package, owner said "ابدأ العمل" 2026-10-14 lifting the doc gate)
 
 ## Completed — Phase 1 (evidence-based)
@@ -168,3 +168,18 @@ No commits/pushes (per brief §18, not separately requested).
   entries; a second tenant's identical question returns 0 (tenant isolation).
 - Carried gaps: no streaming chat UI (panel hook is Phase 10 UX); anomaly-scan tool and
   provider cost quotas are follow-ups; real provider keys are deployment-time config.
+
+## Phase 10 completion evidence (2026-10-15)
+- CI run 38664244473 SUCCESS: full pipeline incl. HTTP E2E against the tsc-compiled app
+  (public health 200, anonymous protected route 401, login sets httpOnly cookies with no
+  tokens in body, authenticated dashboard 201, refresh rotation + replayed refresh 401)
+  and the backup restore drill (artifact row counts == live tenant, SHA-256 match).
+- Hardening: auth rate limiting, security headers, origin check, password policy.
+- Notable debugging (documented honestly): vitest/esbuild does not emit Nest DI metadata,
+  so HTTP E2E runs against dist; two earlier guard/controller 500s traced to that, plus a
+  real APP_GUARD Reflector-injection fragility fixed by reading metadata directly.
+- Web UX: live dashboard counters, reports viewers, AI panel, POS sync panel (Arabic RTL,
+  English, dark/light). Dockerfiles + docker-compose + OPERATIONS.md + RELEASE_READINESS.md.
+- Remaining before production (unchanged, explicit): close Q-001..Q-018 with owners/legal,
+  real ZATCA sandbox onboarding, Drive OAuth credentials, pg_dump/object-storage backups,
+  Playwright/browser + device PWA QA, load testing, eslint adoption.

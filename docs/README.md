@@ -18,10 +18,10 @@ recoverability → regulatory compliance → ease of use → feature speed.
 
 | Item | Value |
 |---|---|
-| Phase | **Phase 1 — Technical foundation** (in progress, see `PROGRESS.md`) |
-| Status | Phase 0 complete. Phase 1 foundation built & unit/RLS-verified; DB integration runs in CI (no local Postgres) |
+| Phase | **All phases 0–10 implemented** — see `PROGRESS.md` and `RELEASE_READINESS.md` |
+| Status | Full pipeline green in CI on real PostgreSQL; production launch gated on RELEASE_READINESS.md items |
 | Repository state at assessment | Greenfield: single commit `456b7b1`, only `README.md`. Nothing to reuse, nothing to migrate. |
-| Next step | Finish Phase 1 DB integration in CI/with real Postgres → Phase 2 accounting & inventory core |
+| Next step | Close legal/ZATCA/deployment items in RELEASE_READINESS.md, then pilot |
 
 ## Documentation index
 
