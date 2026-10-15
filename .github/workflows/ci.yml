@@ -32,5 +32,9 @@ jobs:
       - run: npm run build
       - name: integration tests (real Postgres, as erp_app)
         env: { RUN_INTEGRATION: '1', DATABASE_URL: 'postgresql://erp_app:CHANGE_ME@localhost:5432/erpcloud_test?schema=public' }
-        run: npx vitest run test/
         working-directory: apps/api
+        run: |
+          set +e
+          npx vitest run test/ > /tmp/it.log 2>&1; code=$?
+          if [ $code -ne 0 ]; then echo "::error title=integration::$(grep -E 'FAIL|Error|expected|✗|×|❯' /tmp/it.log | tail -c 2500 | tr '\n' '|')"; fi
+          exit $code
