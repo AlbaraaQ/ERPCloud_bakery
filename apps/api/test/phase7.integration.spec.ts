@@ -56,7 +56,7 @@ describe.skipIf(!run)('Phase7 reporting (AT-RPT-001, real Postgres)', () => {
     const aging = await reports.aging(T, 'customer', '2026-10-20');
     expect(aging.buckets.current).toBe('230'); // credit sale due in 30d
     const apAging = await reports.aging(T, 'supplier', '2026-10-20');
-    expect(apAging.buckets.current).toBe('460'); // 400 + 60 VAT
+    expect(apAging.buckets.d30).toBe('460'); // 400 + 60 VAT, 19 days overdue (no terms)
     const rec = await reports.reconciliations(T, '2026-10-31');
     expect(rec.trialBalanceDifference).toBe('0');
     expect(rec.stockLedgerDriftRows).toBe(0);
