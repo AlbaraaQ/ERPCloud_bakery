@@ -15,12 +15,46 @@ const key = () => 'web-' + Date.now().toString(36) + '-' + Math.random().toStrin
 const today = () => new Date().toISOString().slice(0, 10);
 const fmt = (v: any) => (v === null || v === undefined ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v));
 
-function Table({ rows }: { rows: any[] }) {
-  if (!rows?.length) return <p className="muted">لا توجد بيانات بعد.</p>;
-  const cols = Object.keys(rows[0]).filter(c => typeof rows[0][c] !== 'object' || rows[0][c] === null).slice(0, 9);
-  return <div className="tablewrap"><table><thead><tr>{cols.map(c => <th key={c}>{c}</th>)}</tr></thead>
-    <tbody>{rows.map((r, i) => <tr key={r.id ?? i}>{cols.map(c => <td key={c}>{fmt(r[c])}</td>)}</tr>)}</tbody></table></div>;
+const LABELS: Record<string, string> = {
+  code: 'الرمز', name: 'الاسم', nameAr: 'الاسم', nameEn: 'الاسم الإنجليزي', sku: 'رمز المنتج', barcode: 'الباركود',
+  type: 'النوع', kind: 'النوع', status: 'الحالة', isActive: 'مفعّل', email: 'البريد الإلكتروني', displayName: 'اسم المستخدم',
+  phone: 'الهاتف', taxNumber: 'الرقم الضريبي', creditLimit: 'حد الائتمان', creditHold: 'إيقاف ائتماني',
+  qty: 'الكمية', value: 'القيمة', avgCost: 'متوسط التكلفة', unitCost: 'تكلفة الوحدة', unitPrice: 'سعر الوحدة',
+  defaultPrice: 'سعر البيع', minPrice: 'أدنى سعر', maxPrice: 'أعلى سعر', taxRate: 'الضريبة %', taxCategory: 'فئة الضريبة',
+  total: 'الإجمالي', subtotal: 'قبل الضريبة', taxTotal: 'الضريبة', discountTotal: 'الخصم', paidAmount: 'المدفوع',
+  debit: 'مدين', credit: 'دائن', balance: 'الرصيد', amount: 'المبلغ', category: 'التصنيف', description: 'البيان',
+  number: 'الرقم', version: 'الإصدار', lines: 'عدد السطور', periods: 'عدد الفترات', roles: 'الأدوار',
+  businessDate: 'التاريخ', startDate: 'من', endDate: 'إلى', createdAt: 'أُنشئ في', periodStart: 'بداية الفترة', periodEnd: 'نهاية الفترة',
+  expectedCash: 'النقد المتوقع', countedCash: 'النقد المعدود', fullName: 'اسم الموظف', purpose: 'الغرض المحاسبي', account: 'الحساب',
+  accountingStatus: 'الحالة المحاسبية', paymentStatus: 'حالة الدفع', taxStatus: 'الحالة الضريبية', commercialStatus: 'الحالة التجارية',
+  inventoryStatus: 'حالة المخزون', costingMethod: 'طريقة التكلفة', lotTracked: 'تتبع تشغيلات', expiryTracked: 'تتبع صلاحية',
+  product: 'المنتج', warehouse: 'المخزن', price: 'السعر', lineTotal: 'إجمالي السطر', freeQty: 'مجاني',
+};
+const STATUS_AR: Record<string, string> = {
+  posted: 'مرحّلة', unposted: 'غير مرحّلة', draft: 'مسودة', paid: 'مدفوعة', unpaid: 'غير مدفوعة', partial: 'مدفوعة جزئياً',
+  received: 'مستلمة', dispatched: 'مُرسلة', partially_received: 'مستلمة جزئياً', disputed: 'متنازع عليها', closed: 'مغلقة',
+  requested: 'مطلوبة', under_review: 'قيد المراجعة', finalized: 'نهائية', failed: 'فاشلة', rejected: 'مرفوضة',
+  not_required: 'غير خاضعة', pending: 'قيد الانتظار', reported: 'مُبلّغة', cleared: 'مقبولة من الهيئة', synced: 'متزامنة',
+  active: 'نشط', open: 'مفتوحة', approved: 'معتمدة',
+};
+const moneyKeys = /(total|amount|price|cost|balance|debit|credit|value|paid|limit)/i;
+function fmtCell(col: string, v: any): string {
+  if (v === null || v === undefined) return '—';
+  if (typeof v === 'boolean') return v ? 'نعم' : 'لا';
+  if (col === 'taxRate') return String(v) + '%';
+  if (/date|Date|createdAt/.test(col) && typeof v === 'string' && v.length >= 10) return v.slice(0, 10);
+  if (typeof v === 'string' && STATUS_AR[v]) return STATUS_AR[v];
+  if (moneyKeys.test(col) && v !== '' && !isNaN(Number(v))) return Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v) && v.length < 16) return Number(v).toLocaleString('en-US', { maximumFractionDigits: 4 });
+  return fmt(v);
 }
+function Table({ rows }: { rows: any[] }) {
+  if (!rows?.length) return <p className="muted">لا توجد بيانات بعد — أضف أول عنصر من النموذج أعلاه.</p>;
+  const cols = Object.keys(rows[0]).filter(c => c !== 'id' && !c.endsWith('Id') && (typeof rows[0][c] !== 'object' || rows[0][c] === null)).slice(0, 9);
+  return <div className="tablewrap"><table><thead><tr>{cols.map(c => <th key={c}>{LABELS[c] ?? c}</th>)}</tr></thead>
+    <tbody>{rows.map((r, i) => <tr key={r.id ?? i}>{cols.map(c => <td key={c}>{fmtCell(c, r[c])}</td>)}</tr>)}</tbody></table></div>;
+}
+export const statusAr = (v: string) => STATUS_AR[v] ?? v;
 /** Generic renderer for report JSON (objects of scalars / arrays of rows). */
 function ReportView({ data }: { data: any }) {
   if (!data) return null;
@@ -80,7 +114,7 @@ function App() {
       {user && <button onClick={logout}>{s.logout}</button>}
     </aside>
     <main>
-      <header><span>{s.health}: <b>{health}</b></span><span className="spacer" />
+      <header><span>{s.health}: <b>{health === 'ok' ? 'متصل ✅' : health}</b></span>{user && <span className="muted">👤 {user.user?.displayName} — {form.tenantSlug}</span>}<span className="spacer" />
         <button onClick={() => setLang(ar ? 'en' : 'ar')}>{ar ? 'English' : 'العربية'}</button>
         <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>{theme === 'light' ? '🌙' : '☀️'} {s.toggleTheme}</button>
       </header>
@@ -163,7 +197,7 @@ function SalesPage({ m, run }: any) {
     <h3>أحدث الفواتير</h3>
     <div className="tablewrap"><table><thead><tr><th>الرقم</th><th>التاريخ</th><th>الإجمالي</th><th>المحاسبة</th><th>الدفع</th><th>الضريبة</th><th>إجراءات</th></tr></thead>
     <tbody>{invoices.map((inv: any) => <tr key={inv.id}><td>{inv.number ?? 'مسودة'}</td><td>{String(inv.businessDate).slice(0, 10)}</td><td>{fmt(inv.total)}</td>
-      <td><span className={'badge ' + inv.accountingStatus}>{inv.accountingStatus}</span></td><td><span className={'badge ' + inv.paymentStatus}>{inv.paymentStatus}</span></td><td><span className="badge">{inv.taxStatus}</span></td>
+      <td><span className={'badge ' + inv.accountingStatus}>{statusAr(inv.accountingStatus)}</span></td><td><span className={'badge ' + inv.paymentStatus}>{statusAr(inv.paymentStatus)}</span></td><td><span className="badge">{statusAr(inv.taxStatus)}</span></td>
       <td><button className="ghost" onClick={() => printInvoice(inv, m)}>🖨 طباعة</button>{' '}
       {inv.accountingStatus !== 'posted' && <button onClick={async () => { await run(() => api('/sales/invoices/post-draft', { invoiceId: inv.id }), 'تم ترحيل المسودة'); load(); }}>ترحيل</button>}</td></tr>)}</tbody></table></div>
     <ReturnsBox m={m} run={run} invoices={invoices} />
@@ -400,7 +434,7 @@ function SettingsPage({ m, run, setupDone }: any) {
     <div className="row"><select value={mapPurpose} onChange={e => setMapPurpose(e.target.value)}>{PURPOSES.map(([k, label]) => <option key={k} value={k}>{label} ({k}) {mapped.has(k) ? '✅' : '⬜'}</option>)}</select>
       <select value={mapAccount} onChange={e => setMapAccount(e.target.value)}><option value="">الحساب…</option>{m.accounts.map((a: any) => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}</select>
       <button onClick={() => run(() => api('/master/mappings/set', { purpose: mapPurpose, accountId: mapAccount }), 'تم حفظ الربط')}>حفظ الربط</button></div>
-    <Table rows={m.mappings.map((x: any) => ({ purpose: x.purpose, account: m.accounts.find((a: any) => a.id === x.accountId)?.code ?? x.accountId }))} />
+    <Table rows={m.mappings.map((x: any) => ({ purpose: (PURPOSES.find(([k]) => k === x.purpose)?.[1] ?? x.purpose), account: (() => { const a = m.accounts.find((a2: any) => a2.id === x.accountId); return a ? a.code + ' — ' + a.name : '—'; })() }))} />
     <h3>حساب نقدي/بنكي (للخزينة والمصروفات والمدفوعات)</h3>
     <div className="row"><input placeholder="اسم الخزينة" value={cashAcc.name} onChange={e => setCashAcc({ ...cashAcc, name: e.target.value })} />
       <select value={cashAcc.kind} onChange={e => setCashAcc({ ...cashAcc, kind: e.target.value })}><option value="cash">نقدي</option><option value="bank">بنكي</option></select>

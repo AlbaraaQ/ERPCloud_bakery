@@ -252,3 +252,10 @@ No commits/pushes (per brief §18, not separately requested).
   expense posting/listing, sale -> partial return restocking to 92, TB difference 0.
 - Honest competition note remains in RELEASE_READINESS: ZATCA Phase-2 certification
   path, POS hardware/peripherals, and payroll depth are separate programmes of work.
+
+## Presentation-layer polish (2026-10-15, user: raw IDs/English fields are not client-presentable)
+- All generic tables now render Arabic column labels (LABELS map), hide UUID/id columns,
+  format money to 2dp with thousands separators, dates to YYYY-MM-DD, booleans نعم/لا,
+  tax rates with %, and statuses translated to Arabic (posted=مرحّلة, draft=مسودة, ...).
+- Sales invoice badges and settings mappings show Arabic status/purpose names with the
+  resolved account code+name; header shows the signed-in user and company.
