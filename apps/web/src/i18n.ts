@@ -1,0 +1,5 @@
+export const t = {
+  ar: { app:'ERPCloud للمحاسبة والتوزيع', dashboard:'لوحة التحكم', sales:'المبيعات', inventory:'المخزون', accounting:'المحاسبة', reps:'المندوبون والتسويات', reports:'التقارير', settings:'الإعدادات', login:'تسجيل الدخول', tenant:'معرّف الشركة', email:'البريد الإلكتروني', password:'كلمة المرور', welcome:'ERPCloud — نظام محاسبة وتشغيل متكامل', desc:'محاسبة مزدوجة القيد، مخزون وتكاليف، تصنيع، مبيعات ومندوبون، وتقارير مطابقة للدفاتر.', health:'حالة الخادم', toggleTheme:'تبديل المظهر', foundation:'', logout:'خروج' },
+  en: { app:'ERPCloud Accounting & Distribution', dashboard:'Dashboard', sales:'Sales', inventory:'Inventory', accounting:'Accounting', reps:'Representatives & Settlements', reports:'Reports', settings:'Settings', login:'Sign in', tenant:'Company ID', email:'Email', password:'Password', welcome:'ERPCloud — full accounting & operations ERP', desc:'Double-entry accounting, inventory & costing, manufacturing, sales & representatives, ledger-reconciled reports.', health:'API health', toggleTheme:'Toggle theme', foundation:'', logout:'Sign out' },
+} as const;
+export type Lang = keyof typeof t;

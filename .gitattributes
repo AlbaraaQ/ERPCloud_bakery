@@ -1,0 +1,8 @@
+# Shell scripts and Dockerfiles MUST keep LF endings everywhere.
+# On Windows, git autocrlf would otherwise convert .sh to CRLF and the
+# migrate container dies within seconds (sh interprets \r as commands).
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sql text eol=lf

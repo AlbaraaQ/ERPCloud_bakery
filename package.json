@@ -1,0 +1,13 @@
+{
+  "name": "erpcloud",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "build": "npm run build -w @erpcloud/shared && npm run build -w @erpcloud/api && npm run build -w @erpcloud/web",
+    "test": "npm run test -w @erpcloud/shared && npm run test -w @erpcloud/api",
+    "typecheck": "npm run typecheck -ws --if-present",
+    "lint": "echo \"lint: eslint deferred to Phase 1b - typecheck+tests are the gate\" "
+  },
+  "engines": { "node": ">=22" }
+}

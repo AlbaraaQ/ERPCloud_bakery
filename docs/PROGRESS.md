@@ -1,0 +1,261 @@
+# Progress
+
+_Last updated: 2026-10-15 (Phase 10 session). Update this file at the end of every session._
+
+## Current state
+- **Phase:** ALL PHASES 0–10 IMPLEMENTED. Latest CI green run 38664244473. Production launch NOT yet recommended — see docs/RELEASE_READINESS.md for the unverified list (real ZATCA sandbox/legal, Drive OAuth, pg_dump production backups, browser E2E, load profile, eslint).
+- **Phase 0:** complete (docs package, owner said "ابدأ العمل" 2026-10-14 lifting the doc gate)
+
+## Completed — Phase 1 (evidence-based)
+1. Monorepo (npm workspaces): `apps/api` (NestJS), `apps/web` (React+Vite), `packages/shared`.
+2. `packages/shared`: Decimal money + `assertBalanced`, permission catalogue + role matrix
+   (8 roles), six status axes (D-010), typed domain errors. Tests: 2/2 pass.
+3. API foundation: env validation (zod, fails fast), health (`/health` ok; `/health/ready`
+   honestly 503 without DB), Argon2id password hashing, opaque session tokens (SHA-256 hashed
+   in DB, httpOnly cookie, tokens never in response body), tenant provisioning service
+   (tenant+owner+roles+permissions+audit in one transaction), RBAC `PermissionsGuard` +
+   pure `hasPermissions`, audit service, DB-outbox/jobs skeleton with exponential backoff+jitter.
+   API unit tests: 6/6 pass (password, RBAC matrix skeleton AT-SEC-002, backoff).
+4. Prisma schema (13 foundation models) + hand-reviewed initial migration SQL with RLS
+   policies on all tenant tables + `app-role.sql` (app must connect as non-owner `erp_app`, D-013).
+5. **RLS empirically verified** with embedded Postgres (PGlite, local substitute only):
+   migration applies; non-owner role with no tenant context sees **0** rows; with tenant
+   context sees its **1** row. Superuser bypass discovered & documented (SECURITY_AND_TENANCY §1).
+6. Web shell: Arabic-first RTL, English toggle, light/dark themes, login form wired to API
+   via Vite proxy, health indicator. Builds clean.
+7. CI workflow (`.github/workflows/ci.yml`): Postgres 16 service → prisma generate → migrate
+   deploy → typecheck → tests → build. **Not yet executed** (no push requested/performed).
+8. Live smoke in sandbox: API boots, `GET /api/v1/health` = ok, web serves and proxies API.
+
+## Tests executed (actual results)
+- shared: `vitest` 2 passed. api: `vitest` 6 passed. web/shared typecheck: clean. api build: clean.
+- Migration+RLS: PGlite run — MIGRATION_OK, RLS_NO_CONTEXT=0, RLS_WITH_CONTEXT=1.
+- **Not run:** Prisma generate/migrate against real Postgres, seed, login end-to-end, CI.
+  Reason: no Postgres/Docker locally and Prisma engine host unreachable (B-001/B-003).
+
+## Blockers
+| ID | Blocker | Impact | Resolution |
+|---|---|---|---|
+| B-001 | No PostgreSQL/Docker in sandbox | Real DB integration untested locally | CI (push when authorized) or provide Postgres |
+| B-003 | binaries.prisma.sh unreachable from sandbox | `prisma generate` cannot run locally (D-014 workaround in place) | CI / DB-capable machine |
+| B-002 | ZATCA sandbox/legal answers (Q-001/Q-002) | Phase 6 only | Owner/legal |
+
+## Phase 1 completion evidence (2026-10-14, user authorized push-per-phase)
+- CI run 38651921119 SUCCESS: npm ci → shared build → prisma generate → migrate deploy (Postgres 16)
+  → typecheck → unit tests → integration tests as non-owner `erp_app` → full build.
+- Integration verified on real Postgres: tenant provisioning, owner login + permission set
+  (no platform.admin), wrong-password rejection, cross-tenant login isolation, RLS tenant scoping.
+- CI debugging history (kept honest): Prisma one-line block syntax fix, base_currency @map fix,
+  superuser-RLS-bypass fix (erp_app role). Remaining Phase-1 debt: eslint not configured;
+  refresh-token rotation endpoint not yet implemented (sessions exist; rotation in Phase 3 hardening).
+
+## Files changed (this session)
+Root scaffold (package.json, tsconfig.base, .env.example, .gitignore), `packages/shared/*`,
+`apps/api/*` (src, prisma schema/migration/seed/app-role), `apps/web/*`, `.github/workflows/ci.yml`,
+docs updates (README phase, DECISIONS D-013/D-014, SECURITY_AND_TENANCY RLS role note, this file).
+No commits/pushes (per brief §18, not separately requested).
+
+## Exact next step
+1. Get Postgres: push branch to run CI **or** provide a DATABASE_URL → run migrate+seed+login E2E.
+2. Then Phase 2: chart of accounts/mappings, journal engine, products/warehouses/movement ledger.
+
+## Phase 2 completion evidence (2026-10-15)
+- CI run 38652363821 SUCCESS incl. real-Postgres integration (as erp_app):
+  AT-ACC-001 balanced journal posts once under idempotency retry; trial balance = ledger;
+  reversal linked + second reversal rejected; AT-ACC-003 missing mapping blocks with
+  ConfigurationError; inventory moving-average issue cost = 3 (avg of 2/4), movement retry
+  not duplicated, oversell blocked, **concurrent issues of last stock: exactly 1 succeeded**,
+  balance↔ledger reconciliation drift = [].
+- Local: 10/10 unit tests pass; both migrations also applied on embedded Postgres and the
+  deferred journal-balance DB trigger verified to reject an unbalanced entry.
+- Known gaps carried forward: AT-DATE-001 timezone-boundary test not yet written (Phase 3);
+  FIFO costing not implemented (moving average only, per D-008/Q-007); transfers/counts/
+  reservations are Phase 4/5 scope; accounting UI screens land with Phase 3 POS work.
+
+## Phase 3 completion evidence (2026-10-15)
+- CI run 38653388414 SUCCESS incl. Phase-3 integration on real Postgres:
+  AT-SALE-001 cash sale (total 115 incl. 15% VAT, stock 100→90, idempotent repost);
+  AT-SALE-002 free goods (5 paid + 2 free → stock −7, cost via FREE_GOODS_EXPENSE);
+  AT-PRICE-001/002 out-of-bounds price rejected, approved override recorded
+  (original 10 vs actual 11), master price unchanged; credit-limit rejection;
+  draft purity (no stock/accounting effect) then post-draft; credit-note return
+  restores stock at original cost; posting outside a fiscal period blocked;
+  receipt moves party balance exactly −20; trial balance debit=credit; zero stock drift.
+- Architecture: sales/purchasing compose document+stock+journal in ONE DB transaction
+  via new Tx variants of Accounting/Inventory services (single-authority rule kept).
+- Carried gaps: POS web panel is a UI shell (live data wiring needs DB env); tax engine is
+  rate-per-product only — full ZATCA is Phase 6 (Q-001/Q-002/Q-003 still open); supplier
+  payments use CashService.postPayment; bank reconciliation UI is Phase 7 reporting scope.
+
+## Phase 4 completion evidence (2026-10-15)
+- CI run 38655564074 SUCCESS incl. Phase-4 integration on real Postgres:
+  AT-REP-001 double role assignment -> exactly one rep warehouse; transfer dispatch
+  notifies rep, custody sellable only after acceptance; partial accept 45 + dispute 5,
+  over-receipt rejected (cannot receive twice), approved shortage closes transfer
+  (resolvedQty tracking added via new migration); AT-OFF: offline sale syncs once,
+  duplicate push returns original doc, tampered payload = conflict (never applied),
+  oversell op rejected, zero stock drift; AT-SET: normal settlement finalizes,
+  shortage blocks closure as exception with **zero** employee-debt journals,
+  approved adjustment posts stock+journal, then closure succeeds.
+- Web: real IndexedDB outbox (client op ids, states, sync-now, backoff helper) wired
+  to /representatives/sync/push.
+- Debugging honesty: two real bugs were caught by CI tests and fixed — dispute
+  resolution could never close a transfer, and decided exceptions spawned fresh
+  open exceptions at finalize (infinite block).
+- Carried gaps: commissions engine basic scope deferred (rules Q-009 open);
+  settlement expected-cash covers cash allocations to rep invoices (e-payment
+  settlement reconciliation UI is Phase 7); PWA background sync limitations per OFFLINE_SYNC §7.
+
+## Phase 5 completion evidence (2026-10-15)
+- CI run 38656704921 SUCCESS incl. Phase-5 integration on real Postgres:
+  AT-MFG-002 missing PRODUCTION_OVERHEAD mapping blocks completion and posts nothing
+  (order stays planned); AT-MFG-001: material 134 (52kg flour @2 + 10kg sugar @3)
+  + labour 100 = 234 total, abnormal scrap 5 units = 11.7 expensed to SCRAP_LOSS,
+  finished 95 @ 2.34, idempotent re-completion, lot genealogy flour-lot -> bread-lot,
+  variance flour planned 50 vs actual 52 (+2), trial balance balanced, zero stock drift.
+- Stock counts: counted 38 vs book 40 with reason posts adjustment movement+journal;
+  FEFO returns earliest-expiry lot first.
+- All 6 migrations also applied cleanly on embedded Postgres (59 tables).
+- Carried gaps: FIFO costing still not implemented (D-008/Q-007 open); WIP is direct
+  completion costing (no multi-stage WIP ledger); production UI screens are Phase 10 UX scope.
+
+## Phase 6 completion evidence (2026-10-15) — with honesty limits
+- CI run 38657983733 SUCCESS incl. Phase-6 integration with a FAKE gateway at the documented
+  boundary (no real ZATCA sandbox credentials exist in this project yet):
+  simplified invoice reported with TLV QR + ICV 1, resubmit returns same submission with
+  gateway called once (no duplicate issuance); standard invoice: simulated network failure
+  -> status failed + invoice stays pending_clearance (never falsely cleared), retry reuses
+  SAME uuid/hash/icv -> cleared; simulated official rejection -> rejected; tax period
+  summary by rate reconciles (15% tax = 6 on the test data).
+- All 7 migrations apply on embedded Postgres (62 tables).
+- NOT DONE / NOT CLAIMED: real ZATCA sandbox onboarding (CSR/CSID), official-spec XML
+  profile validation, production credentials, legal sign-off. Q-001/Q-002/Q-003 remain open
+  and production tax submission must stay disabled until they are resolved.
+
+## Phase 7 completion evidence (2026-10-15)
+- CI run 38659214834 SUCCESS incl. AT-RPT-001 on real Postgres: income statement revenue 300 /
+  COGS 120 / profit 180; balance sheet balances (after including current-period profit in
+  equity — a bug the tests caught and fixed); AR aging current bucket 230, AP d30 bucket 460;
+  reconciliations endpoint: trial-balance difference 0, stock drift rows 0, inventory
+  valuation 280 == GL inventory account; sales-by-product gross profit 180; ledger drill-down.
+- Reports read posted journals + movement ledger only; CSV export behind reports.export.
+- Carried gaps: PDF/print rendering polish is Phase 10; route/visit and commission reports
+  depend on Q-009/Q-012; cash-flow classification mapping is direct-method v1 (Q-011 open).
+
+## Phase 8 completion evidence (2026-10-15)
+- CI run 38660019337 SUCCESS incl. Phase-8 integration: platform login separate from tenant
+  auth; tenant provisioning with plan; suspension blocks tenant login while preserving data;
+  support access rejected without tenant consent and granted (scoped/expiring/audited) with it;
+  plan quota maxRepresentatives=1 enforced on the second representative; encrypted backup
+  created -> status verified only after write/hash/decrypt verification, SHA-256 recorded;
+  corrupted artifact copy fails verification; unconfigured Google Drive fails explicitly
+  (no fake success); retention keeps <= 18 verified.
+- Real bug caught & fixed by the tests: backup reads initially ran without RLS context
+  (empty dump) and tenant export could have included all tenants — now platform-context
+  reads with strict single-tenant filtering.
+- Carried gaps: production backup should use pg_dump + object storage at deployment
+  (logical encrypted export is the implemented, tested mechanism; BACKUP_AND_RECOVERY
+  documents the distinction); Google Drive OAuth linking requires deployment credentials;
+  automated 4h scheduling hook = jobs worker in Phase 10 ops scope; restore is a verified
+  artifact + documented drill procedure, not an in-app one-click restore (by design).
+
+## Phase 9 completion evidence (2026-10-15)
+- CI run 38660937722 SUCCESS incl. AT-AI-001 on real Postgres: sales question answered from
+  reporting services (totalNet 100) in structured mode with no provider; tool denied without
+  reports.view and the denial itself audited; ai.use gate enforced; fake provider receives
+  only tool data + guardrail system prompt and merely phrases the answer; a sensitive
+  collection-reminder request creates a pending-approval record and changes ZERO journal
+  entries; a second tenant's identical question returns 0 (tenant isolation).
+- Carried gaps: no streaming chat UI (panel hook is Phase 10 UX); anomaly-scan tool and
+  provider cost quotas are follow-ups; real provider keys are deployment-time config.
+
+## Phase 10 completion evidence (2026-10-15)
+- CI run 38664244473 SUCCESS: full pipeline incl. HTTP E2E against the tsc-compiled app
+  (public health 200, anonymous protected route 401, login sets httpOnly cookies with no
+  tokens in body, authenticated dashboard 201, refresh rotation + replayed refresh 401)
+  and the backup restore drill (artifact row counts == live tenant, SHA-256 match).
+- Hardening: auth rate limiting, security headers, origin check, password policy.
+- Notable debugging (documented honestly): vitest/esbuild does not emit Nest DI metadata,
+  so HTTP E2E runs against dist; two earlier guard/controller 500s traced to that, plus a
+  real APP_GUARD Reflector-injection fragility fixed by reading metadata directly.
+- Web UX: live dashboard counters, reports viewers, AI panel, POS sync panel (Arabic RTL,
+  English, dark/light). Dockerfiles + docker-compose + OPERATIONS.md + RELEASE_READINESS.md.
+- Remaining before production (unchanged, explicit): close Q-001..Q-018 with owners/legal,
+  real ZATCA sandbox onboarding, Drive OAuth credentials, pg_dump/object-storage backups,
+  Playwright/browser + device PWA QA, load testing, eslint adoption.
+
+## Production delivery packaging (2026-10-15, post-Phase 10)
+- Added `docker-compose.prod.yml`: db (not published) + one-shot `migrate` service
+  (prisma migrate deploy -> app-role.sql with the app password substituted -> optional
+  seed) + api running as non-owner `erp_app` with healthcheck + web via nginx.
+- Added `apps/web/nginx.conf`: same-origin `/api/` proxy to api:3001, SPA fallback,
+  immutable asset caching, security headers; web Dockerfile now installs it.
+- Added `.env.production.example` (every variable documented, secrets via openssl),
+  `.dockerignore`, root `README.md` quick-start, and the full Arabic operations guide
+  `docs/DEPLOYMENT_GUIDE_AR.md` (requirements, first boot + seed, smoke tests, HTTPS,
+  backups/restore drills, update/rollback, troubleshooting, pre-launch gates).
+- CI now also validates the production compose file and builds both production images.
+- NOT verified locally: no Docker engine in this sandbox, so the compose stack itself
+  is verified by the new CI docker-build step on this commit, not by a local boot.
+  Production launch gates in docs/RELEASE_READINESS.md are unchanged.
+
+## Production migrate failure — root-cause fix (2026-10-15)
+- User-reported: prod `migrate` container exited non-zero; local Windows Prisma failed
+  with P1012 (DATABASE_URL not found). Diagnosis: CI only *built* the images and never
+  *booted* the stack, so runtime faults were uncaught. Likely compounding causes: fragile
+  inline compose shell (quoting / `$$` expansion around app-role.sql) and Prisma-on-Alpine
+  runtime needing OpenSSL/glibc-compat.
+- Fixes: checked-in `apps/api/scripts/migrate-prod.sh` (validates env, migrate deploy,
+  node-based password substitution safe for any characters, optional seed; compose now
+  calls it directly), runtime image installs `openssl libc6-compat`, `apps/api/.env.example`
+  added + guide updated for the P1012 Windows case, and CI gained a REAL production-stack
+  smoke test (compose up -> migrate OK marker -> /health -> web -> seeded-owner login ->
+  dashboard) so a broken boot now fails CI before delivery.
+
+## Prod-boot verification result (2026-10-15, CI 38672162240 SUCCESS)
+- The real production-stack smoke test now passes end-to-end in CI: compose up ->
+  migrate (deploy + erp_app role + seed) -> API /health -> web serves -> seeded owner
+  login -> authenticated dashboard, alongside the full integration suite.
+- Bugs found ONLY because the stack was finally booted (build-green was misleading):
+  (1) Prisma query-engine OpenSSL variant mismatch (1.1.x generated vs 3.0.x runtime),
+  (2) permission-catalogue upsert P2002 race under parallel tenant provisioning —
+  fixed with createMany skipDuplicates in both seed and AuthService provisioning.
+- For the user's Windows local P1012: copy apps/api/.env.example to apps/api/.env.
+
+## Web UI rebuild + master-data module (2026-10-15, user feedback: UI was a Phase-1 shell)
+- User correctly rejected the web UI as a toy (dead nav, "Phase 1 foundation" text).
+  Backend also genuinely lacked master-data/list endpoints, making real use impossible.
+- Added apps/api/src/masterdata (accounts, mappings, fiscal years with 12 periods,
+  units, products, warehouses, parties/employees lists, cash accounts, stock balances,
+  invoices/journals/supplier-invoices/expenses lists, boms/orders/transfers/settlements
+  lists, tenant VAT settings) — no migration needed (models already existed).
+- Rebuilt apps/web into working pages: dashboard with setup-wizard status, POS/sales
+  (حفظ وترحيل / حفظ بدون ترحيل نهائي), purchases, parties + statements, inventory
+  (units/products/warehouses/opening balances/valuation), accounting (chart, balanced
+  manual journals, posted journal list, trial balance), manufacturing (BOM/orders/
+  completion), representatives (employees, assignment, transfers, settlements),
+  reports (TB/IS/BS/sales/valuation/aging/ledger/reconciliations), settings wizard.
+- Fixed Parties statement GET-with-body -> POST (browsers cannot call the old shape).
+- AT-UI-001/002 (phase11.integration.spec) prove the exact setup path the UI calls,
+  ending in a posted sale with trial-balance difference 0 — verified in CI.
+
+## Professional-edition round (2026-10-15, user: must compete in the Saudi market)
+- Web: full commercial theme (dark professional sidebar, KPI cards with Arabic labels,
+  status badges never colour-alone, styled tables/forms), printable A4 invoice view
+  (explicitly labels non-finalised tax status; no fabricated QR/stamp), sales returns
+  (credit notes), post-draft action, cash & expenses page (expenses, receipt/payment
+  vouchers with card-settlement disclaimer), users & roles management in settings,
+  dashboard financial KPIs (sales today/month, invoices/customers/products counts).
+- Backend: MasterData users/roles (Argon2id + password policy), invoice list now
+  includes lines for printing, dashboard KPI aggregates.
+- AT-PRO-001..003 (phase12.integration) verify staff-user creation + real login,
+  expense posting/listing, sale -> partial return restocking to 92, TB difference 0.
+- Honest competition note remains in RELEASE_READINESS: ZATCA Phase-2 certification
+  path, POS hardware/peripherals, and payroll depth are separate programmes of work.
+
+## Presentation-layer polish (2026-10-15, user: raw IDs/English fields are not client-presentable)
+- All generic tables now render Arabic column labels (LABELS map), hide UUID/id columns,
+  format money to 2dp with thousands separators, dates to YYYY-MM-DD, booleans نعم/لا,
+  tax rates with %, and statuses translated to Arabic (posted=مرحّلة, draft=مسودة, ...).
+- Sales invoice badges and settings mappings show Arabic status/purpose names with the
+  resolved account code+name; header shows the signed-in user and company.

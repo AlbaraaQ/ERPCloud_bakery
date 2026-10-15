@@ -1,0 +1,22 @@
+# Local/staging stack. Production: use managed Postgres + the erp_app role (apps/api/prisma/app-role.sql).
+services:
+  db:
+    image: postgres:16
+    environment: { POSTGRES_USER: erp, POSTGRES_PASSWORD: erp, POSTGRES_DB: erpcloud }
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U erp"], interval: 5s, timeout: 3s, retries: 10 }
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    environment:
+      DATABASE_URL: postgresql://erp:erp@db:5432/erpcloud?schema=public
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production-min-32-chars}
+      WEB_ORIGIN: http://localhost:5173
+      PORT: 3001
+    ports: ["3001:3001"]
+    depends_on: { db: { condition: service_healthy } }
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    ports: ["5173:80"]
+    depends_on: [api]
+volumes: { pgdata: {} }

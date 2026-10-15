@@ -1,0 +1,1 @@
+ALTER TABLE transfer_lines ADD COLUMN resolved_qty NUMERIC(19,6) NOT NULL DEFAULT 0;

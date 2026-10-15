@@ -1,0 +1,59 @@
+/* ERPCloud Professional — Saudi-market ERP theme (light + dark, RTL-first) */
+:root{
+  --brand:#0b6e4f; --brand2:#0a5c43; --accent:#c9a227;
+  --bg:#f4f6f8; --card:#ffffff; --text:#17222b; --muted:#66788a; --border:#dde4ea;
+  --danger:#b3261e; --ok:#0a7d3b; --warn:#9a6a00;
+  --sidebar:#0d2b23; --sidebarText:#d7e6df;
+  font-family:"Segoe UI", Tahoma, "Noto Kufi Arabic", Arial, sans-serif;
+}
+[data-theme="dark"]{
+  --bg:#10161c; --card:#18222b; --text:#e8eef4; --muted:#93a5b5; --border:#2a3947;
+  --sidebar:#0a1f19; --sidebarText:#cfe3da;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text)}
+.layout{display:flex;min-height:100vh}
+aside{width:250px;flex:0 0 250px;background:var(--sidebar);color:var(--sidebarText);padding:1.1rem .8rem;display:flex;flex-direction:column;gap:.25rem;position:sticky;top:0;height:100vh}
+aside .logo{font-weight:800;font-size:1.05rem;padding:.4rem .6rem 1rem;color:#fff;border-bottom:1px solid rgba(255,255,255,.14);margin-bottom:.7rem}
+aside a{color:var(--sidebarText);text-decoration:none;padding:.55rem .7rem;border-radius:10px;font-size:.95rem}
+aside a:hover{background:rgba(255,255,255,.08)}
+aside a.active{background:var(--brand);color:#fff;font-weight:700}
+aside .small{margin-top:auto}
+main{flex:1;padding:1.1rem 1.4rem;max-width:1400px;margin-inline:auto;width:100%}
+header{display:flex;align-items:center;gap:.6rem;margin-bottom:1rem}
+.spacer{flex:1}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.1rem 1.2rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(16,24,40,.06)}
+h1{font-size:1.35rem;margin:.1rem 0 .8rem} h2{font-size:1.12rem} h3{margin:1.1rem 0 .5rem;font-size:1rem;border-inline-start:4px solid var(--brand);padding-inline-start:.5rem}
+button{background:var(--brand);color:#fff;border:0;border-radius:10px;padding:.52rem 1rem;cursor:pointer;font-weight:600;font-size:.9rem}
+button:hover{background:var(--brand2)} button:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:transparent;color:var(--brand);border:1.5px solid var(--brand)}
+input,select,textarea{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:.5rem .65rem;font-size:.92rem;min-width:0}
+label{display:flex;flex-direction:column;gap:.25rem;font-size:.82rem;color:var(--muted)}
+.row{display:flex;gap:.6rem;align-items:flex-end;flex-wrap:wrap;margin:.5rem 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.8rem}
+.stat{background:linear-gradient(160deg,rgba(11,110,79,.10),transparent);border:1px solid var(--border);border-radius:14px;padding:.9rem}
+.stat b{font-size:1.55rem;color:var(--brand)} .stat span{display:block;color:var(--muted);font-size:.8rem;margin-top:.15rem}
+.muted{color:var(--muted);font-size:.88rem} .small{font-size:.8rem}
+.error{color:var(--danger);background:rgba(179,38,30,.08);border:1px solid rgba(179,38,30,.35);border-radius:10px;padding:.55rem .8rem}
+.success{color:var(--ok)}
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;margin:.5rem 0}
+table{width:100%;border-collapse:collapse;font-size:.84rem;background:var(--card)}
+th,td{padding:.45rem .6rem;text-align:start;white-space:nowrap;border-bottom:1px solid var(--border)}
+th{background:rgba(127,127,127,.10);font-weight:700}
+tr:hover td{background:rgba(11,110,79,.045)}
+.badge{display:inline-block;padding:.08rem .55rem;border-radius:999px;font-size:.75rem;font-weight:700;border:1px solid}
+.badge.posted,.badge.paid,.badge.received,.badge.finalized{color:var(--ok);border-color:var(--ok)}
+.badge.draft,.badge.unposted,.badge.unpaid,.badge.requested{color:var(--warn);border-color:var(--warn)}
+.badge.failed,.badge.rejected,.badge.disputed{color:var(--danger);border-color:var(--danger)}
+.checklist{line-height:2.1;list-style:none;padding:0}
+.login{display:flex;flex-direction:column;gap:.8rem;max-width:420px}
+textarea{width:100%}
+/* Printable A4 tax invoice */
+#printArea{display:none}
+@media print{
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{display:block;position:absolute;inset:0;padding:24px;color:#000;background:#fff;font-size:13px}
+  #printArea table{border:1px solid #000} #printArea th,#printArea td{border:1px solid #000;white-space:normal}
+}
+@media (max-width:760px){ aside{width:64px;flex-basis:64px} aside a{font-size:0} aside a::first-letter{font-size:1rem} aside .logo{font-size:0} }

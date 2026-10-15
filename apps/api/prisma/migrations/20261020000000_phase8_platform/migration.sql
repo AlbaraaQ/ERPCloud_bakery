@@ -1,0 +1,7 @@
+-- Phase 8: platform console + backups (platform tables intentionally have no tenant RLS;
+-- access is platform-auth only and every action is audit-logged)
+CREATE TABLE platform_users (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, display_name TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'ops', status TEXT NOT NULL DEFAULT 'active', created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE platform_sessions (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), platform_user_id UUID NOT NULL REFERENCES platform_users(id) ON DELETE CASCADE, token_hash TEXT NOT NULL UNIQUE, expires_at TIMESTAMPTZ NOT NULL, revoked_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE support_access_grants (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id UUID NOT NULL, platform_user_id UUID NOT NULL, scope TEXT NOT NULL DEFAULT 'read_only', reason TEXT NOT NULL, tenant_consent BOOLEAN NOT NULL DEFAULT false, expires_at TIMESTAMPTZ NOT NULL, revoked_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE backup_jobs (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id UUID, kind TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'scheduled', artifact_path TEXT, size_bytes INT, sha256 TEXT, destination TEXT NOT NULL DEFAULT 'local', drive_file_id TEXT, error TEXT, attempts INT NOT NULL DEFAULT 0, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), completed_at TIMESTAMPTZ);
+CREATE INDEX backup_jobs_kind_status_idx ON backup_jobs (kind, status, created_at);
