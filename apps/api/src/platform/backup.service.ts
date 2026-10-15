@@ -44,10 +44,18 @@ export class BackupService {
     const job = await db.backupJob.create({ data: { tenantId: input.tenantId ?? null, kind: input.tenantId ? 'tenant_export' : 'platform_logical', status: 'running', destination: input.destination ?? 'local', attempts: 1 } });
     try {
       const dump: Record<string, unknown[]> = {};
-      for (const t of TABLES) {
-        try { dump[t] = input.tenantId && t !== 'tenants' ? await db.$queryRawUnsafe(`SELECT * FROM ${t} WHERE tenant_id = '${input.tenantId}'`) : await db.$queryRawUnsafe(`SELECT * FROM ${t}`); }
-        catch { dump[t] = []; }
-      }
+      // Platform-context reads (RLS would otherwise hide every row); tenant exports are
+      // strictly filtered to that tenant — a tenant can never receive another tenant's data.
+      await this.prisma.withPlatform(async (tx: any) => {
+        for (const t of TABLES) {
+          try {
+            if (!input.tenantId) dump[t] = await tx.$queryRawUnsafe(`SELECT * FROM ${t}`);
+            else if (t === 'tenants') dump[t] = await tx.$queryRawUnsafe(`SELECT * FROM tenants WHERE id = '${input.tenantId}'`);
+            else if (['permissions'].includes(t)) dump[t] = await tx.$queryRawUnsafe(`SELECT * FROM ${t}`);
+            else dump[t] = await tx.$queryRawUnsafe(`SELECT * FROM ${t} WHERE tenant_id = '${input.tenantId}'`);
+          } catch { dump[t] = []; }
+        }
+      });
       const plain = Buffer.from(JSON.stringify({ createdAt: new Date().toISOString(), tenantId: input.tenantId ?? null, tables: dump }), 'utf8');
       const artifact = this.encrypt(plain);
       const sha = createHash('sha256').update(artifact).digest('hex');
