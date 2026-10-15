@@ -211,3 +211,13 @@ No commits/pushes (per brief §18, not separately requested).
   added + guide updated for the P1012 Windows case, and CI gained a REAL production-stack
   smoke test (compose up -> migrate OK marker -> /health -> web -> seeded-owner login ->
   dashboard) so a broken boot now fails CI before delivery.
+
+## Prod-boot verification result (2026-10-15, CI 38672162240 SUCCESS)
+- The real production-stack smoke test now passes end-to-end in CI: compose up ->
+  migrate (deploy + erp_app role + seed) -> API /health -> web serves -> seeded owner
+  login -> authenticated dashboard, alongside the full integration suite.
+- Bugs found ONLY because the stack was finally booted (build-green was misleading):
+  (1) Prisma query-engine OpenSSL variant mismatch (1.1.x generated vs 3.0.x runtime),
+  (2) permission-catalogue upsert P2002 race under parallel tenant provisioning —
+  fixed with createMany skipDuplicates in both seed and AuthService provisioning.
+- For the user's Windows local P1012: copy apps/api/.env.example to apps/api/.env.
