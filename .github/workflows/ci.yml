@@ -39,7 +39,6 @@ jobs:
           docker build -f apps/web/Dockerfile -t erpcloud-web:ci .
       - name: production stack smoke test (real boot — migrate, API, web, login)
         run: |
-          set +e
           {
           cat > .env.production <<'EOF'
           POSTGRES_USER=erp_owner
