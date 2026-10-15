@@ -29,8 +29,8 @@ jobs:
       - name: create non-owner app role (RLS requires it, D-013)
         working-directory: apps/api
         run: npx prisma db execute --file prisma/app-role.sql
+      - run: npm run build
       - name: integration tests (real Postgres, as erp_app)
         env: { RUN_INTEGRATION: '1', DATABASE_URL: 'postgresql://erp_app:CHANGE_ME@localhost:5432/erpcloud_test?schema=public' }
         run: npx vitest run test/
         working-directory: apps/api
-      - run: npm run build

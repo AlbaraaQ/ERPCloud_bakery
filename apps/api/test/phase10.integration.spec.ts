@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { Catch, HttpException, type ArgumentsHost, type ExceptionFilter, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
-import { AppModule } from '../src/app.module';
 
 const run = process.env.RUN_INTEGRATION === '1';
 describe.skipIf(!run)('Phase10 HTTP E2E + hardening + restore drill', () => {
@@ -15,15 +14,18 @@ describe.skipIf(!run)('Phase10 HTTP E2E + hardening + restore drill', () => {
   beforeAll(async () => {
     process.env.BACKUP_DIR = mkdtempSync(join(tmpdir(), 'erp-drill-'));
     process.env.BACKUP_ENCRYPTION_KEY = 'ci-backup-key-at-least-32-characters-long';
+    // Import the COMPILED module: tsc emits design:paramtypes that Nest DI needs;
+    // vitest/esbuild transpilation of src does not (CI builds before integration runs).
+    const { AppModule } = await import('../../dist/app.module');
     const mod = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = mod.createNestApplication(); app.setGlobalPrefix('api/v1'); app.use(cookieParser());
     @Catch() class DebugFilter implements ExceptionFilter { catch(e: any, host: ArgumentsHost) { const res = host.switchToHttp().getResponse(); res.status(e instanceof HttpException ? e.getStatus() : 500).json({ debug: String(e?.stack ?? e).slice(0, 800) }); } }
     app.useGlobalFilters(new DebugFilter());
     await app.listen(0);
     const addr = app.getHttpServer().address(); base = `http://127.0.0.1:${addr.port}`;
-    const { PrismaService } = await import('../src/prisma/prisma.service');
-    const { AuditService } = await import('../src/audit/audit.service');
-    const { AuthService } = await import('../src/auth/auth.service');
+    const { PrismaService } = await import('../../dist/prisma/prisma.service');
+    const { AuditService } = await import('../../dist/audit/audit.service');
+    const { AuthService } = await import('../../dist/auth/auth.service');
     const prisma = new PrismaService();
     const auth = new AuthService(prisma, new AuditService(prisma));
     const r = await auth.createTenantWithOwner({ tenantName: 'P10', slug, email: 'o@p10.test', password: 'Strong-Pass-123!', displayName: 'Owner' });
@@ -61,8 +63,8 @@ describe.skipIf(!run)('Phase10 HTTP E2E + hardening + restore drill', () => {
   });
 
   it('backup restore drill: artifact decrypts and row counts match the live tenant', async () => {
-    const { PrismaService } = await import('../src/prisma/prisma.service');
-    const { BackupService, HttpDriveGateway } = await import('../src/platform/backup.service');
+    const { PrismaService } = await import('../../dist/prisma/prisma.service');
+    const { BackupService, HttpDriveGateway } = await import('../../dist/platform/backup.service');
     const prisma = new PrismaService();
     const backups = new BackupService(prisma, new HttpDriveGateway());
     const job = await backups.createBackup({ tenantId });
