@@ -238,3 +238,17 @@ No commits/pushes (per brief §18, not separately requested).
 - Fixed Parties statement GET-with-body -> POST (browsers cannot call the old shape).
 - AT-UI-001/002 (phase11.integration.spec) prove the exact setup path the UI calls,
   ending in a posted sale with trial-balance difference 0 — verified in CI.
+
+## Professional-edition round (2026-10-15, user: must compete in the Saudi market)
+- Web: full commercial theme (dark professional sidebar, KPI cards with Arabic labels,
+  status badges never colour-alone, styled tables/forms), printable A4 invoice view
+  (explicitly labels non-finalised tax status; no fabricated QR/stamp), sales returns
+  (credit notes), post-draft action, cash & expenses page (expenses, receipt/payment
+  vouchers with card-settlement disclaimer), users & roles management in settings,
+  dashboard financial KPIs (sales today/month, invoices/customers/products counts).
+- Backend: MasterData users/roles (Argon2id + password policy), invoice list now
+  includes lines for printing, dashboard KPI aggregates.
+- AT-PRO-001..003 (phase12.integration) verify staff-user creation + real login,
+  expense posting/listing, sale -> partial return restocking to 92, TB difference 0.
+- Honest competition note remains in RELEASE_READINESS: ZATCA Phase-2 certification
+  path, POS hardware/peripherals, and payroll depth are separate programmes of work.

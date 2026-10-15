@@ -1,18 +1,59 @@
-:root{--bg:#f6f7f9;--surface:#fff;--text:#17202a;--muted:#667085;--primary:#0f766e;--border:#e4e7ec}
-[data-theme=dark]{--bg:#0b1220;--surface:#111a2e;--text:#eef2f7;--muted:#98a2b3;--primary:#2dd4bf;--border:#22304d}
-*{box-sizing:border-box}body{margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:var(--bg);color:var(--text)}
-.layout{display:flex;min-height:100vh}aside{width:260px;background:var(--surface);border-inline-end:1px solid var(--border);padding:20px;display:flex;flex-direction:column;gap:8px}
-.logo{font-weight:800;color:var(--primary);margin-bottom:16px}aside a{color:var(--text);text-decoration:none;padding:10px 12px;border-radius:10px}aside a.active,aside a:hover{background:var(--primary);color:#fff}
-main{flex:1;padding:20px}header{display:flex;gap:10px;align-items:center;margin-bottom:16px}.spacer{flex:1}
-button{background:var(--primary);color:#fff;border:0;border-radius:10px;padding:9px 14px;cursor:pointer;font:inherit}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:760px}.ok{color:var(--primary)}
-.login{display:grid;gap:12px;max-width:420px}.login label{display:grid;gap:6px;color:var(--muted)}.login input{padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font:inherit}
-@media(max-width:700px){aside{display:none}}
-.pos{margin:16px 0}.row{display:flex;gap:10px;flex-wrap:wrap}.secondary{background:var(--surface)!important;color:var(--primary)!important;border:1px solid var(--primary)!important}.muted{color:var(--muted)}
-.chip{border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:13px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}.stat{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;display:grid;gap:4px}.stat b{font-size:26px;color:var(--primary)}.error{color:#b42318;background:#fef3f2;border:1px solid #fecdca;padding:10px 14px;border-radius:10px}.report{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;overflow:auto;max-height:340px;font-size:12px}.grow{flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font:inherit}.small{font-size:12px}
-.tablewrap{overflow-x:auto} table{width:100%;border-collapse:collapse;font-size:.85rem} th,td{border:1px solid var(--border,#ddd);padding:.35rem .5rem;text-align:start;white-space:nowrap} th{background:rgba(127,127,127,.12)}
-.success{color:#0a7d3b} .checklist{line-height:2} .checklist button{margin-inline-start:.5rem}
-textarea{background:var(--card,#fff);color:inherit;border:1px solid var(--border,#ccc);border-radius:8px;padding:.5rem}
-select,input{background:var(--card,#fff);color:inherit;border:1px solid var(--border,#ccc);border-radius:8px;padding:.45rem .6rem}
-.stat{display:flex;flex-direction:column;gap:.2rem} .stat b{font-size:1.5rem}
+/* ERPCloud Professional — Saudi-market ERP theme (light + dark, RTL-first) */
+:root{
+  --brand:#0b6e4f; --brand2:#0a5c43; --accent:#c9a227;
+  --bg:#f4f6f8; --card:#ffffff; --text:#17222b; --muted:#66788a; --border:#dde4ea;
+  --danger:#b3261e; --ok:#0a7d3b; --warn:#9a6a00;
+  --sidebar:#0d2b23; --sidebarText:#d7e6df;
+  font-family:"Segoe UI", Tahoma, "Noto Kufi Arabic", Arial, sans-serif;
+}
+[data-theme="dark"]{
+  --bg:#10161c; --card:#18222b; --text:#e8eef4; --muted:#93a5b5; --border:#2a3947;
+  --sidebar:#0a1f19; --sidebarText:#cfe3da;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text)}
+.layout{display:flex;min-height:100vh}
+aside{width:250px;flex:0 0 250px;background:var(--sidebar);color:var(--sidebarText);padding:1.1rem .8rem;display:flex;flex-direction:column;gap:.25rem;position:sticky;top:0;height:100vh}
+aside .logo{font-weight:800;font-size:1.05rem;padding:.4rem .6rem 1rem;color:#fff;border-bottom:1px solid rgba(255,255,255,.14);margin-bottom:.7rem}
+aside a{color:var(--sidebarText);text-decoration:none;padding:.55rem .7rem;border-radius:10px;font-size:.95rem}
+aside a:hover{background:rgba(255,255,255,.08)}
+aside a.active{background:var(--brand);color:#fff;font-weight:700}
+aside .small{margin-top:auto}
+main{flex:1;padding:1.1rem 1.4rem;max-width:1400px;margin-inline:auto;width:100%}
+header{display:flex;align-items:center;gap:.6rem;margin-bottom:1rem}
+.spacer{flex:1}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.1rem 1.2rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(16,24,40,.06)}
+h1{font-size:1.35rem;margin:.1rem 0 .8rem} h2{font-size:1.12rem} h3{margin:1.1rem 0 .5rem;font-size:1rem;border-inline-start:4px solid var(--brand);padding-inline-start:.5rem}
+button{background:var(--brand);color:#fff;border:0;border-radius:10px;padding:.52rem 1rem;cursor:pointer;font-weight:600;font-size:.9rem}
+button:hover{background:var(--brand2)} button:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:transparent;color:var(--brand);border:1.5px solid var(--brand)}
+input,select,textarea{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:.5rem .65rem;font-size:.92rem;min-width:0}
+label{display:flex;flex-direction:column;gap:.25rem;font-size:.82rem;color:var(--muted)}
+.row{display:flex;gap:.6rem;align-items:flex-end;flex-wrap:wrap;margin:.5rem 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.8rem}
+.stat{background:linear-gradient(160deg,rgba(11,110,79,.10),transparent);border:1px solid var(--border);border-radius:14px;padding:.9rem}
+.stat b{font-size:1.55rem;color:var(--brand)} .stat span{display:block;color:var(--muted);font-size:.8rem;margin-top:.15rem}
+.muted{color:var(--muted);font-size:.88rem} .small{font-size:.8rem}
+.error{color:var(--danger);background:rgba(179,38,30,.08);border:1px solid rgba(179,38,30,.35);border-radius:10px;padding:.55rem .8rem}
+.success{color:var(--ok)}
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;margin:.5rem 0}
+table{width:100%;border-collapse:collapse;font-size:.84rem;background:var(--card)}
+th,td{padding:.45rem .6rem;text-align:start;white-space:nowrap;border-bottom:1px solid var(--border)}
+th{background:rgba(127,127,127,.10);font-weight:700}
+tr:hover td{background:rgba(11,110,79,.045)}
+.badge{display:inline-block;padding:.08rem .55rem;border-radius:999px;font-size:.75rem;font-weight:700;border:1px solid}
+.badge.posted,.badge.paid,.badge.received,.badge.finalized{color:var(--ok);border-color:var(--ok)}
+.badge.draft,.badge.unposted,.badge.unpaid,.badge.requested{color:var(--warn);border-color:var(--warn)}
+.badge.failed,.badge.rejected,.badge.disputed{color:var(--danger);border-color:var(--danger)}
+.checklist{line-height:2.1;list-style:none;padding:0}
+.login{display:flex;flex-direction:column;gap:.8rem;max-width:420px}
+textarea{width:100%}
+/* Printable A4 tax invoice */
+#printArea{display:none}
+@media print{
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{display:block;position:absolute;inset:0;padding:24px;color:#000;background:#fff;font-size:13px}
+  #printArea table{border:1px solid #000} #printArea th,#printArea td{border:1px solid #000;white-space:normal}
+}
+@media (max-width:760px){ aside{width:64px;flex-basis:64px} aside a{font-size:0} aside a::first-letter{font-size:1rem} aside .logo{font-size:0} }

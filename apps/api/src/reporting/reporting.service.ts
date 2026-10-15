@@ -129,7 +129,17 @@ export class ReportingService {
         tx.stockBalance.count({ where: { tenantId, qty: { lt: 10 } } }),
         tx.stockTransfer.count({ where: { tenantId, status: { in: ['dispatched', 'partially_received', 'disputed'] } } }),
       ]);
-      return { openSettlements, failedTaxSubmissions: failedTax, rejectedSyncOps: rejectedSync, lowStockRows: lowStock, pendingTransfers };
+      const now = new Date(); const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+      const [salesTodayAgg, salesMonthAgg, invoicesCount, customersCount, productsCount] = await Promise.all([
+        tx.salesInvoice.aggregate({ where: { tenantId, accountingStatus: 'posted', businessDate: { gte: new Date(now.toISOString().slice(0, 10)) } }, _sum: { total: true } }),
+        tx.salesInvoice.aggregate({ where: { tenantId, accountingStatus: 'posted', businessDate: { gte: monthStart } }, _sum: { total: true } }),
+        tx.salesInvoice.count({ where: { tenantId } }),
+        tx.party.count({ where: { tenantId, kind: { in: ['customer', 'both'] } } }),
+        tx.product.count({ where: { tenantId, isActive: true } }),
+      ]);
+      return { openSettlements, failedTaxSubmissions: failedTax, rejectedSyncOps: rejectedSync, lowStockRows: lowStock, pendingTransfers,
+        salesToday: salesTodayAgg._sum.total?.toString() ?? '0', salesThisMonth: salesMonthAgg._sum.total?.toString() ?? '0',
+        invoicesCount, customersCount, productsCount };
     });
   }
 }

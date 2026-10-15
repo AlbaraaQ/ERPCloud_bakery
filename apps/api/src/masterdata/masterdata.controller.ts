@@ -55,6 +55,11 @@ export class MasterDataController {
   @Post('boms') @RequirePermissions('production.view') listBoms() { return this.svc.listBoms(this.t()); }
   @Post('production-orders') @RequirePermissions('production.view') listOrders() { return this.svc.listProductionOrders(this.t()); }
 
+  @Post('users') @RequirePermissions('tenant.configure') listUsers() { return this.svc.listUsers(this.t()); }
+  @Post('users/create') @RequirePermissions('tenant.configure')
+  createUser(@Body() b: unknown) { const d = z.object({ email: z.string().email(), password: z.string().min(10), displayName: z.string().min(1), roleCode: z.string().min(2) }).parse(b); return this.svc.createUser(this.t(), d); }
+  @Post('roles') @RequirePermissions('tenant.configure') listRoles() { return this.svc.listRoles(this.t()); }
+
   @Post('tenant') @RequirePermissions('tenant.configure') tenant() { return this.svc.getTenant(this.t()); }
   @Post('tenant/tax') @RequirePermissions('tax.configure')
   tenantTax(@Body() b: unknown) { const d = z.object({ vatRegistered: z.boolean(), vatNumber: z.string().optional() }).parse(b); return this.svc.updateTenantTax(this.t(), d); }

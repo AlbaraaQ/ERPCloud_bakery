@@ -70,7 +70,7 @@ function App() {
     try { const r = await fn(); setMsg(okMsg); await loadMaster().catch(() => {}); return r; }
     catch (ex: any) { setErr(ex.message); throw ex; }
   };
-  const nav: [string, string][] = [['dashboard', s.dashboard], ['sales', s.sales], ['purchases', ar ? 'المشتريات' : 'Purchases'], ['parties', ar ? 'العملاء والموردون' : 'Customers & Suppliers'], ['inventory', s.inventory], ['accounting', s.accounting], ['production', ar ? 'التصنيع' : 'Manufacturing'], ['reps', s.reps], ['reports', s.reports], ['settings', s.settings]];
+  const nav: [string, string][] = [['dashboard', s.dashboard], ['sales', s.sales], ['purchases', ar ? 'المشتريات' : 'Purchases'], ['cash', ar ? 'الخزينة والمصروفات' : 'Cash & Expenses'], ['parties', ar ? 'العملاء والموردون' : 'Customers & Suppliers'], ['inventory', s.inventory], ['accounting', s.accounting], ['production', ar ? 'التصنيع' : 'Manufacturing'], ['reps', s.reps], ['reports', s.reports], ['settings', s.settings]];
   const setupDone = { accounts: master.accounts.length > 0, mappings: master.mappings.length >= 8, fy: master.fiscalYears.length > 0, products: master.products.length > 0, warehouses: master.warehouses.length > 0 };
 
   return (<div className="layout">
@@ -97,6 +97,7 @@ function App() {
         {page === 'dashboard' && <Dashboard dash={dash} setDash={setDash} setupDone={setupDone} setPage={setPage} ar={ar} run={run} />}
         {page === 'sales' && <SalesPage m={master} run={run} ar={ar} />}
         {page === 'purchases' && <PurchasesPage m={master} run={run} />}
+        {page === 'cash' && <CashPage m={master} run={run} />}
         {page === 'parties' && <PartiesPage m={master} run={run} />}
         {page === 'inventory' && <InventoryPage m={master} run={run} />}
         {page === 'accounting' && <AccountingPage m={master} run={run} />}
@@ -111,7 +112,8 @@ function App() {
 function Dashboard({ dash, setDash, setupDone, setPage, ar, run }: any) {
   const [question, setQuestion] = useState(''); const [answer, setAnswer] = useState<any>(null);
   useEffect(() => { api('/reports/dashboard').then(setDash).catch(() => {}); }, []);
-  const cards: [string, any][] = dash ? Object.entries(dash).slice(0, 8) : [];
+  const labels: Record<string, string> = { salesToday: 'مبيعات اليوم (ر.س)', salesThisMonth: 'مبيعات هذا الشهر (ر.س)', invoicesCount: 'عدد الفواتير', customersCount: 'العملاء', productsCount: 'المنتجات النشطة', openSettlements: 'تسويات مفتوحة', failedTaxSubmissions: 'إرسالات ضريبية فاشلة', rejectedSyncOps: 'عمليات مزامنة مرفوضة', lowStockRows: 'أصناف منخفضة المخزون', pendingTransfers: 'تحويلات بالطريق' };
+  const cards: [string, any][] = dash ? Object.entries(dash).map(([k, v]) => [labels[k] ?? k, v]) : [];
   return <>
     <section className="card"><h1>لوحة التحكم</h1>
       <div className="grid">{cards.map(([k, v]) => <div className="stat" key={k}><b>{fmt(v)}</b><span>{k}</span></div>)}</div>
@@ -158,7 +160,13 @@ function SalesPage({ m, run }: any) {
     <div className="row"><button onClick={async () => { const r = await run(() => api('/sales/invoices', build()), 'تم حفظ وترحيل الفاتورة'); setLast(r); load(); }}>💾 حفظ وترحيل</button>
       <button onClick={async () => { const r = await run(() => api('/sales/invoices/draft', build()), 'حُفظت كمسودة — ليست فاتورة ضريبية ولا أثر محاسبياً لها'); setLast(r); load(); }}>حفظ بدون ترحيل نهائي (مسودة)</button></div>
     {last && <p className="success">آخر فاتورة: الرقم {fmt(last.number)} — الإجمالي {fmt(last.total)} — الحالة المحاسبية {fmt(last.accountingStatus)} — الدفع {fmt(last.paymentStatus)}</p>}
-    <h3>أحدث الفواتير</h3><Table rows={invoices} />
+    <h3>أحدث الفواتير</h3>
+    <div className="tablewrap"><table><thead><tr><th>الرقم</th><th>التاريخ</th><th>الإجمالي</th><th>المحاسبة</th><th>الدفع</th><th>الضريبة</th><th>إجراءات</th></tr></thead>
+    <tbody>{invoices.map((inv: any) => <tr key={inv.id}><td>{inv.number ?? 'مسودة'}</td><td>{String(inv.businessDate).slice(0, 10)}</td><td>{fmt(inv.total)}</td>
+      <td><span className={'badge ' + inv.accountingStatus}>{inv.accountingStatus}</span></td><td><span className={'badge ' + inv.paymentStatus}>{inv.paymentStatus}</span></td><td><span className="badge">{inv.taxStatus}</span></td>
+      <td><button className="ghost" onClick={() => printInvoice(inv, m)}>🖨 طباعة</button>{' '}
+      {inv.accountingStatus !== 'posted' && <button onClick={async () => { await run(() => api('/sales/invoices/post-draft', { invoiceId: inv.id }), 'تم ترحيل المسودة'); load(); }}>ترحيل</button>}</td></tr>)}</tbody></table></div>
+    <ReturnsBox m={m} run={run} invoices={invoices} />
     <div className="row"><button onClick={load}>تحديث القائمة</button></div></section>;
 }
 
@@ -353,6 +361,21 @@ function ReportsPage({ run }: any) {
     {title && <h3>{title}</h3>}{report && <ReportView data={report} />}</section>;
 }
 
+function UsersBox({ m, run }: any) {
+  const [users, setUsers] = useState<any[]>([]); const [roles, setRoles] = useState<any[]>([]);
+  const [f, setF] = useState({ email: '', password: '', displayName: '', roleCode: 'ACCOUNTANT' });
+  const load = () => { api('/master/users', {}).then(setUsers).catch(() => {}); api('/master/roles', {}).then((r: any[]) => setRoles(r)).catch(() => {}); };
+  useEffect(() => { load(); }, []);
+  return <div>
+    <div className="row"><input placeholder="البريد الإلكتروني" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} />
+      <input placeholder="الاسم" value={f.displayName} onChange={e => setF({ ...f, displayName: e.target.value })} />
+      <input type="password" placeholder="كلمة مرور (10+ حروف وأرقام)" value={f.password} onChange={e => setF({ ...f, password: e.target.value })} />
+      <select value={f.roleCode} onChange={e => setF({ ...f, roleCode: e.target.value })}>{roles.map((r: any) => <option key={r.id} value={r.code}>{r.code}</option>)}</select>
+      <button onClick={async () => { await run(() => api('/master/users/create', f), 'تم إنشاء المستخدم'); load(); }}>إنشاء مستخدم</button></div>
+    <Table rows={users.map((u: any) => ({ email: u.email, displayName: u.displayName, isActive: u.isActive, roles: u.roles?.map((x: any) => x.role?.code).join(',') }))} />
+    <p className="muted">الأدوار المتاحة: {roles.map((r: any) => r.code).join(' · ') || '—'} — مالك الشركة (TENANT_OWNER) يملك كل الصلاحيات عدا إدارة المنصة.</p></div>;
+}
+
 const PURPOSES: [string, string][] = [['CASH_ON_HAND', 'النقدية بالخزينة'], ['AR_CUSTOMER', 'ذمم العملاء'], ['AP_SUPPLIER', 'ذمم الموردين'], ['INVENTORY', 'المخزون'], ['COGS', 'تكلفة المبيعات'], ['SALES_REVENUE', 'إيرادات المبيعات'], ['VAT_OUTPUT', 'ضريبة مخرجات (مستحقة)'], ['VAT_INPUT', 'ضريبة مدخلات (قابلة للخصم)'], ['FREE_GOODS_EXPENSE', 'مصروف بضاعة مجانية'], ['EXPENSE_GENERAL', 'مصروفات عامة'], ['SCRAP_LOSS', 'خسائر تالف إنتاج'], ['PRODUCTION_LABOUR', 'عمالة إنتاج مباشرة'], ['PRODUCTION_OVERHEAD', 'تكاليف إنتاج غير مباشرة'], ['PRODUCTION_OTHER', 'تكاليف إنتاج أخرى']];
 function SettingsPage({ m, run, setupDone }: any) {
   const [fy, setFy] = useState({ name: String(new Date().getFullYear()), startDate: today().slice(0, 4) + '-01-01', endDate: today().slice(0, 4) + '-12-31' });
@@ -388,7 +411,57 @@ function SettingsPage({ m, run, setupDone }: any) {
     <div className="row"><label><input type="checkbox" checked={tax.vatRegistered} onChange={e => setTax({ ...tax, vatRegistered: e.target.checked })} /> مسجّل في ضريبة القيمة المضافة</label>
       <input placeholder="الرقم الضريبي (15 رقماً)" value={tax.vatNumber} onChange={e => setTax({ ...tax, vatNumber: e.target.value })} />
       <button onClick={() => run(() => api('/master/tenant/tax', tax), 'تم حفظ الإعداد الضريبي')}>حفظ</button></div>
+    <h3>المستخدمون والأدوار</h3><UsersBox m={m} run={run} />
     <p className="muted">تنبيه: حفظ هذه الإعدادات لا يُفعّل الإرسال إلى ZATCA — الإرسال الإنتاجي يبقى معطّلاً حتى إتمام الانضمام الرسمي والاعتماد القانوني.</p></section>;
 }
 
-createRoot(document.getElementById('root')!).render(<App />);
+function printInvoice(inv: any, m: Master) {
+  const area = document.getElementById('printArea'); if (!area) return;
+  const party = m.parties.find((p: any) => p.id === inv.partyId);
+  const rows = (inv.lines ?? []).map((l: any) => `<tr><td>${m.products.find((p: any) => p.id === l.productId)?.nameAr ?? l.productId}</td><td>${l.qty}</td><td>${l.freeQty}</td><td>${l.unitPrice}</td><td>${l.taxRate}%</td><td>${l.lineTotal}</td></tr>`).join('');
+  area.innerHTML = `<div style="text-align:center"><h2>فاتورة ضريبية ${inv.taxStatus === 'cleared' || inv.taxStatus === 'reported' ? '' : '(نسخة داخلية — الحالة الضريبية: ' + inv.taxStatus + ')'}</h2></div>
+  <p>رقم الفاتورة: ${inv.number ?? '—'} | التاريخ: ${String(inv.businessDate).slice(0, 10)} | العميل: ${party?.name ?? 'بيع نقدي'} ${party?.taxNumber ? '| رقمه الضريبي: ' + party.taxNumber : ''}</p>
+  <table><thead><tr><th>المنتج</th><th>الكمية</th><th>مجاني</th><th>سعر الوحدة</th><th>الضريبة</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
+  <p>المجموع قبل الضريبة: ${inv.subtotal} | الخصم: ${inv.discountTotal} | ضريبة القيمة المضافة: ${inv.taxTotal} | <b>الإجمالي المستحق: ${inv.total} ر.س</b> | المدفوع: ${inv.paidAmount}</p>
+  <p style="font-size:11px">أُنشئت من نظام ERPCloud. إعادة الطباعة لا تغيّر الفاتورة الأصلية ولا تاريخها. رمز QR والختم التشفيري يصدران فقط من بوابة ZATCA بعد إرسال/اعتماد فعلي — لا يُطبعان هنا افتراضياً.</p>`;
+  window.print();
+}
+
+function ReturnsBox({ m, run, invoices }: any) {
+  const [invoiceId, setInvoiceId] = useState(''); const [lines, setLines] = useState<any[]>([{ productId: '', qty: '1' }]);
+  const [date, setDate] = useState(today()); const [warehouseId, setWarehouseId] = useState('');
+  return <div><h3>↩️ مرتجع مبيعات (إشعار دائن)</h3>
+    <div className="row"><select value={invoiceId} onChange={e => setInvoiceId(e.target.value)}><option value="">الفاتورة الأصلية…</option>{invoices.filter((i: any) => i.accountingStatus === 'posted').map((i: any) => <option key={i.id} value={i.id}>#{i.number} — {fmt(i.total)} ر.س</option>)}</select>
+      <select value={warehouseId} onChange={e => setWarehouseId(e.target.value)}><option value="">مخزن الإرجاع…</option>{m.warehouses.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
+      <input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
+    <LineEditor m={m} lines={lines} setLines={setLines} />
+    <button onClick={() => run(() => api('/sales/returns', { originalInvoiceId: invoiceId, warehouseId, businessDate: date, idempotencyKey: key(), lines: lines.filter((l: any) => l.productId).map((l: any) => ({ productId: l.productId, qty: l.qty })) }), 'تم إنشاء المرتجع وإشعاره الدائن')}>ترحيل المرتجع</button></div>;
+}
+
+function CashPage({ m, run }: any) {
+  const [exp, setExp] = useState({ category: 'مصروفات تشغيلية', description: '', amount: '', cashAccountId: '', businessDate: today() });
+  const [pay, setPay] = useState({ partyId: '', direction: 'in', method: 'cash', amount: '', cashAccountId: '', businessDate: today() });
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const load = () => api('/master/expenses', {}).then(setExpenses).catch(() => {});
+  useEffect(() => { load(); }, []);
+  return <section className="card"><h1>💰 الخزينة والمصروفات والمدفوعات</h1>
+    <h3>مصروف جديد (يُرحّل: مصروف / خزينة)</h3>
+    <div className="row"><input placeholder="التصنيف" value={exp.category} onChange={e => setExp({ ...exp, category: e.target.value })} />
+      <input placeholder="البيان" value={exp.description} onChange={e => setExp({ ...exp, description: e.target.value })} />
+      <input placeholder="المبلغ" value={exp.amount} onChange={e => setExp({ ...exp, amount: e.target.value })} />
+      <select value={exp.cashAccountId} onChange={e => setExp({ ...exp, cashAccountId: e.target.value })}><option value="">الخزينة/البنك…</option>{m.cashAccounts.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+      <input type="date" value={exp.businessDate} onChange={e => setExp({ ...exp, businessDate: e.target.value })} />
+      <button onClick={async () => { await run(() => api('/cash/expenses', { ...exp, idempotencyKey: key() }), 'تم ترحيل المصروف'); load(); }}>ترحيل المصروف</button></div>
+    <h3>سند قبض / صرف لطرف</h3>
+    <div className="row"><select value={pay.partyId} onChange={e => setPay({ ...pay, partyId: e.target.value })}><option value="">الطرف…</option>{m.parties.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+      <select value={pay.direction} onChange={e => setPay({ ...pay, direction: e.target.value })}><option value="in">قبض (من الطرف)</option><option value="out">صرف (للطرف)</option></select>
+      <select value={pay.method} onChange={e => setPay({ ...pay, method: e.target.value })}><option value="cash">نقدي</option><option value="bank">تحويل بنكي</option><option value="card">بطاقة (تسوية لاحقة)</option></select>
+      <input placeholder="المبلغ" value={pay.amount} onChange={e => setPay({ ...pay, amount: e.target.value })} />
+      <select value={pay.cashAccountId} onChange={e => setPay({ ...pay, cashAccountId: e.target.value })}><option value="">الخزينة/البنك…</option>{m.cashAccounts.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+      <input type="date" value={pay.businessDate} onChange={e => setPay({ ...pay, businessDate: e.target.value })} />
+      <button onClick={() => run(() => api('/cash/payments', { ...pay, idempotencyKey: key() }), 'تم ترحيل السند')}>ترحيل السند</button></div>
+    <p className="muted">الدفع بالبطاقة يُسجَّل كوسيلة دفع ولا يعني نقداً مستلماً حتى التسوية البنكية.</p>
+    <h3>أحدث المصروفات</h3><Table rows={expenses} /></section>;
+}
+
+createRoot(document.getElementById('root')!).render(<><App /><div id="printArea" /></>);
