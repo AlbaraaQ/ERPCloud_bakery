@@ -40,7 +40,7 @@ describe.skipIf(!run)('Phase10 HTTP E2E + hardening + restore drill', () => {
 
   it('login over HTTP sets httpOnly cookies and never returns tokens in body', async () => {
     const bad = await post('/api/v1/auth/login', { tenantSlug: slug, email: 'o@p10.test', password: 'wrong' });
-    expect(bad.status).toBe(401);
+    if (bad.status !== 401) throw new Error('BADLOGIN_BODY:' + (await bad.text()).slice(0, 400));
     const ok = await post('/api/v1/auth/login', { tenantSlug: slug, email: 'o@p10.test', password: 'Strong-Pass-123!' });
     expect(ok.status).toBe(201);
     const setCookie = ok.headers.get('set-cookie') ?? '';
